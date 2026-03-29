@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>URBAN CASA | Executive Quote</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+
+    <script>
+        const firebaseConfig = { databaseURL: "https://modular-quotation-default-rtdb.firebaseio.com/" };
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+    </script>
+    
+    <style>
+        :root { --urban-navy: #1a2a3a; --urban-gold: #c5a059; --row-accent: #f8f9fa; --accent-green: #27ae60; --danger: #e74c3c; --urban-orange: #ff8c00; }
+        body { font-family: 'Segoe UI', Roboto, sans-serif; background: #eef2f3; margin: 0; padding-bottom: 140px; color: #2c3e50; font-size: 11px; line-height: 1.4; }
+        * { box-sizing: border-box; }
+        
+        .brand-header { background: var(--urban-navy); padding: 20px; text-align: left; border-bottom: 5px solid var(--urban-gold); color: white; position: relative; }
+        .brand-name { font-size: 1.8rem; font-weight: 900; letter-spacing: 2px; margin: 0; }
+        .brand-tagline { color: var(--urban-gold); font-size: 0.75rem; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 10px; font-weight: 600; }
+        .contact-info-line { font-size: 0.7rem; display: flex; flex-wrap: wrap; gap: 15px; align-items: center; opacity: 0.9; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 10px; margin-top: 5px; }
+
+        .quotation-label {
+            font-size: 0.75rem;
+            font-weight: 800;
+            color: white;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            border: 1px solid var(--urban-gold);
+            padding: 4px 10px;
+            border-radius: 4px;
+            margin-left: auto; 
+        }
+        
+        .version-tag {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            font-size: 0.65rem;
+            color: rgba(255,255,255,0.5);
+            font-weight: bold;
+        }
+
+        .container { padding: 10px; max-width: 950px; margin: auto; }
+        .card { background: white; border-radius: 8px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); border: 1px solid #e0e6ed; overflow: hidden; }
+        
+        .client-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; align-items: end; }
+        
+        .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 2px solid var(--urban-gold); padding-bottom: 5px; }
+        .section-title { font-weight: 800; color: var(--urban-navy); font-size: 0.85rem; text-transform: uppercase; }
+        
+        .summary-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+        .summary-table thead tr { background: var(--urban-navy); color: white; }
+        .summary-table th { text-align: left; padding: 10px 8px; font-size: 0.7rem; text-transform: uppercase; border: none; }
+        .summary-table td { padding: 8px; border-bottom: 1px solid #f0f0f0; font-size: 0.8rem; }
+        
+        .measurement-row { display: grid; gap: 10px; margin-bottom: 10px; align-items: end; background: var(--row-accent); padding: 12px; border-radius: 6px; border: 1px solid #dee2e6; transition: background 0.2s; }
+        .measurement-row:focus-within { background: #fff; border-color: var(--urban-gold); box-shadow: 0 0 5px rgba(197, 160, 89, 0.3); }
+        .row-dims { grid-template-columns: 2fr 0.6fr 0.6fr 0.8fr 0.8fr 1fr auto; }
+        .row-fixed { grid-template-columns: 2.5fr 0.6fr 0.8fr 0.8fr 1fr auto; }
+        
+        @media (max-width: 600px) {
+            .row-dims, .row-fixed { grid-template-columns: 1fr 1fr; gap: 8px; }
+            .row-dims div:first-child, .row-fixed div:first-child { grid-column: span 2; }
+            .footer-content { justify-content: space-between; padding: 0 10px; }
+            .footer-stat { min-width: 50px; font-size: 0.8rem; }
+            .quotation-label { margin-left: 0; width: 100%; text-align: center; margin-top: 5px; } 
+        }
+
+        .controls { display: flex; gap: 4px; justify-content: flex-end; align-items: center; }
+        .btn-move { border:1px solid #ddd; background:white; cursor:pointer; font-size:0.7rem; padding: 3px 6px; border-radius: 3px; }
+        .btn-del { border:none; background:none; color:var(--danger); cursor:pointer; font-size:1rem; padding: 0 5px; }
+        
+        .room-footer { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #eee; margin-top: 10px; padding-top: 10px; }
+        
+        input, textarea { width: 100%; padding: 8px; border: 1px solid #ced4da; border-radius: 4px; font-size: 11px; box-sizing: border-box; }
+        label { display: block; font-size: 0.6rem; color: var(--urban-navy); margin-bottom: 4px; font-weight: 700; text-transform: uppercase; }
+        
+        .sign-container { display: flex; justify-content: space-between; margin-top: 10px; gap: 20px; }
+        .sign-box { flex: 1; border-top: 1px solid #333; text-align: center; padding-top: 8px; margin-top: 30px; font-weight: 700; font-size: 0.7rem; color: var(--urban-navy); text-transform: uppercase; }
+
+        .tc-list { font-size: 0.65rem; color: #444; padding-left: 15px; margin: 0; }
+
+        .footer-nav { position: fixed; bottom: 0; width: 100%; background: var(--urban-navy); color: white; padding: 10px 0; border-top: 4px solid var(--urban-gold); z-index: 1000; }
+        .footer-content { max-width: 950px; margin: auto; display: flex; align-items: center; justify-content: space-around; flex-wrap: nowrap; gap: 5px; overflow-x: auto; }
+        .footer-stat { text-align: center; min-width: 60px; border-right: 1px solid rgba(255,255,255,0.1); padding-right: 5px; }
+        .footer-stat:last-of-type { border-right: none; }
+        .footer-stat b { color: var(--urban-gold); font-size: 0.9rem; white-space: nowrap; }
+        
+        .action-btns { display: flex; gap: 8px; align-items: center; }
+        .btn-action { width: 34px; height: 34px; border-radius: 8px; border: none; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1rem; }
+        .bg-wa { background: #25d366; } .bg-print { background: #3498db; } .bg-excel { background: #27ae60; } .bg-save { background: #6c5ce7; } .bg-search { background: #a29bfe; }
+
+        #searchModal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:2000; align-items:center; justify-content:center; }
+        .modal-content { background:white; width:90%; max-width:400px; border-radius:12px; padding:20px; }
+        #searchResultsList { max-height:300px; overflow-y:auto; border:1px solid #f0f0f0; border-radius:8px; margin: 10px 0; }
+        .search-item { padding:12px; border-bottom:1px solid #eee; display:flex; justify-content:space-between; align-items:center; }
+
+        /* FORCED BACKGROUND GRAPHICS FOR PRINTING */
+        @media print {
+            *, body { 
+                -webkit-print-color-adjust: exact !important; 
+                print-color-adjust: exact !important; 
+                color-adjust: exact !important; 
+            }
+            .no-print, .footer-nav, #searchModal, .btn-del, .btn-move, .btn-action { display: none !important; }
+            body { background: white; padding: 0; margin: 0; }
+            .container { max-width: 100%; padding: 0; }
+            .card { border: 1px solid #eee !important; page-break-inside: avoid; break-inside: avoid; margin-bottom: 20px; box-shadow: none !important; }
+            input { border: none !important; background: transparent !important; padding: 0 !important; }
+            textarea { border: none !important; resize: none; }
+            #summary-section { page-break-after: always; break-after: page; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="capture-area">
+    <div class="brand-header">
+        <div class="version-tag">v1.5</div>
+        <div class="brand-name">URBAN CASA</div>
+        <div class="brand-tagline">Premium Modular Kitchens & Wardrobes</div>
+        <div class="contact-info-line">
+            <span><i class="fas fa-map-marker-alt"></i> Raichandani Mall - Kompally</span>
+            <span><i class="fas fa-phone-alt"></i> +91 888 66 88 090</span>
+            <span><i class="fas fa-globe"></i> https://www.urban-casa.in</span>
+            <span class="quotation-label">QUOTATION</span>
+        </div>
+    </div>
+
+    <div class="container">
+        <div id="summary-section">
+            <div class="card">
+                <div class="client-grid">
+                    <div><label>Client Name</label><input type="text" id="cName" placeholder="Full Name"></div>
+                    <div><label>Phone</label><input type="tel" id="cPhone" placeholder="Mobile"></div>
+                    <div><label>Address</label><input type="text" id="cAddress" placeholder="Site Location"></div>
+                    <div><label>Date</label><input type="date" id="qDate"></div>
+                    <div><label>GST %</label><input type="number" id="gstRate" value="18" oninput="calculate()"></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="section-header"><span class="section-title">Project Summary</span></div>
+                <table class="summary-table">
+                    <thead>
+                        <tr>
+                            <th>Section Description</th>
+                            <th style="text-align:center">SFT/UNITS</th>
+                            <th style="text-align:right">Total MRP</th>
+                            <th style="text-align:right">Offer Price</th>
+                        </tr>
+                    </thead>
+                    <tbody id="index-body"></tbody>
+                    <tfoot>
+                        <tr style="font-weight:bold;">
+                            <td colspan="3" style="text-align: right; padding: 10px;">Sub-Total:</td>
+                            <td id="idx-sub" style="text-align: right; padding: 10px;">₹ 0</td>
+                        </tr>
+                        <tr style="font-weight:bold;">
+                            <td colspan="3" id="gstLabel" style="text-align: right; padding: 10px;">GST (18%):</td>
+                            <td id="idx-gst" style="text-align: right; padding: 10px;">₹ 0</td>
+                        </tr>
+                        <tr style="background: var(--urban-navy); color: white; font-weight: bold;">
+                            <td colspan="2" style="padding: 12px; text-align: left; font-size: 0.85rem; letter-spacing: 0.5px; color: white;">
+                                SFT: <span id="tbl-sft">0</span> &nbsp;&nbsp;|&nbsp;&nbsp; QTY: <span id="tbl-qty">0</span>
+                            </td>
+                            <td style="text-align: right; padding: 12px;">GRAND TOTAL:</td>
+                            <td id="idx-grand" style="text-align: right; padding: 12px;">₹ 0</td>
+                        </tr>
+                        <tr style="background: var(--accent-green); color: white; font-weight: bold;">
+                            <td colspan="2" style="padding: 4px 12px; text-align: left; font-size: 0.7rem; letter-spacing: 0.5px;">TOTAL SAVINGS ON BILL:</td>
+                            <td colspan="2" id="idx-savings" style="text-align: right; padding: 4px 12px; font-size: 0.75rem;">₹ 0</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px;">
+                <div class="card">
+                    <div class="section-header"><span class="section-title">Terms & Conditions</span></div>
+                    <ul class="tc-list">
+                        <li><b>Booking:</b> 10% advance to initiate measurements & design.</li>
+                        <li><b>Production:</b> 50% payment after design sign-off.</li>
+                        <li><b>Dispatch:</b> 30% payment before materials leave factory.</li>
+                        <li><b>Handover:</b> Final 10% payment due upon completion.</li>
+                        <li><b>Warranty:</b> 10-Year Warranty on BWP Plywood factory defects.</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <div class="section-header"><span class="section-title">Special Notes</span></div>
+                    <textarea id="customNotes" style="height: 100px; border:none; background: #fffdf5;" placeholder="Additional requirements..."></textarea>
+                </div>
+            </div>
+
+            <div class="sign-container">
+                <div class="sign-box">Client Signature</div>
+                <div class="sign-box">Store Manager Signature</div>
+            </div>
+        </div>
+
+        <div id="room-container"></div>
+        
+        <div class="card" style="margin-top: 20px; border:none; box-shadow:none;">
+            <p style="text-align: center; font-size: 0.6rem; color: #888; text-transform: uppercase;">--- Authorized Quotation End ---</p>
+            <div class="sign-container">
+                <div class="sign-box">Client Acceptance</div>
+                <div class="sign-box">Urban Casa Authorized Sign</div>
+            </div>
+        </div>
+
+        <div class="no-print" style="text-align: center; margin-bottom: 20px;">
+             <button onclick="addNewCategory()" style="padding: 12px 24px; background: var(--urban-gold); border:none; border-radius:6px; color:white; font-weight:900; cursor:pointer;">+ ADD NEW CATEGORY</button>
+        </div>
+    </div>
+</div>
+
+<div id="searchModal"><div class="modal-content">
+    <h3 style="margin-top:0; color:var(--urban-navy);">Search Quotes</h3>
+    <input type="text" id="dbSearchInput" placeholder="Name or Contact Number..." oninput="filterResults()" style="border: 2px solid #ddd; margin: 10px 0;">
+    <div id="searchResultsList"></div>
+    <button onclick="closeSearch()" style="width:100%; padding:10px; background:#eee; border:none; border-radius:6px; font-weight:bold;">CLOSE</button>
+</div></div>
+
+<div class="footer-nav no-print">
+    <div class="footer-content">
+        <div class="footer-stat"><small>Wood</small><br><b id="footerSft">0</b></div>
+        <div class="footer-stat"><small>Hardw</small><br><b id="footerQty">0</b></div>
+        <div class="footer-stat"><small>Grand Total</small><br><b id="footerGrand">₹ 0</b></div>
+        <div class="action-btns">
+            <button class="btn-action bg-save" onclick="saveToCloud()" title="Save Quotation"><i class="fas fa-cloud-upload-alt"></i></button>
+            <button class="btn-action bg-search" onclick="searchDatabase()" title="Search Database"><i class="fas fa-search"></i></button>
+            <button class="btn-action bg-excel" onclick="exportToExcel()" title="Export to Excel"><i class="fas fa-file-excel"></i></button>
+            <button class="btn-action bg-print" onclick="handlePrint()" title="Print Quotation"><i class="fas fa-print"></i></button>
+            <button class="btn-action bg-wa" onclick="shareToWhatsApp()" title="Share via WhatsApp"><i class="fab fa-whatsapp"></i></button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Global Text Auto-Capitalize Script
+    document.addEventListener('input', function(e) {
+        if (e.target.tagName === 'INPUT' && e.target.type === 'text') {
+            let start = e.target.selectionStart;
+            let val = e.target.value;
+            // Capitalize first letter of every word
+            let capitalized = val.replace(/\b\w/g, char => char.toUpperCase());
+            if (val !== capitalized) {
+                e.target.value = capitalized;
+                e.target.setSelectionRange(start, start);
+            }
+        }
+    });
+
+    let roomCount = 0;
+    let allQuotes = {};
+
+    window.onload = () => {
+        document.getElementById('qDate').value = new Date().toISOString().split('T')[0];
+        renderRoomStructure("Kitchen", "dims");
+        renderRoomStructure("Hall/Living & Dining", "dims");
+        renderRoomStructure("Master Bedroom", "dims");
+        renderRoomStructure("Children's Bedroom", "dims");
+        renderRoomStructure("Guest Bedroom", "dims");
+        renderRoomStructure("Hardware & Accessories", "fixed");
+        calculate();
+    };
+
+    function renderRoomStructure(name, type) {
+        const cont = document.getElementById('room-container');
+        const idx = roomCount++;
+        const div = document.createElement('div');
+        div.className = 'card room-card';
+        div.dataset.roomType = type;
+        div.innerHTML = `
+            <div class="section-header">
+                <span class="section-title">${name}</span>
+                <div class="controls no-print">
+                    <button class="btn-move" onclick="moveCategory(this.closest('.card'), 'up')" title="Move Section Up">▲</button>
+                    <button class="btn-move" onclick="moveCategory(this.closest('.card'), 'down')" title="Move Section Down">▼</button>
+                    <button class="btn-del" onclick="this.closest('.card').remove();calculate()" title="Delete Section"><i class="fas fa-trash-alt"></i></button>
+                </div>
+            </div>
+            <div id="sec-${idx}"></div>
+            <div class="room-footer">
+                <div style="font-size: 0.75rem; font-weight: 800;">${name} Total: <span id="room-sft-${idx}">0</span> | <span style="color:var(--accent-green)">₹ <span id="room-total-${idx}">0</span></span></div>
+                <button class="no-print" style="padding: 5px 10px; background: var(--urban-gold); color:white; border:none; border-radius:4px; font-size: 0.65rem; font-weight: 700; cursor:pointer;" onclick="addItem(${idx}, '${type}')">+ ITEM</button>
+            </div>`;
+        cont.appendChild(div);
+        addItem(idx, type);
+    }
+
+    function moveCategory(card, dir) {
+        if (dir === 'up' && card.previousElementSibling) card.parentNode.insertBefore(card, card.previousElementSibling);
+        else if (dir === 'down' && card.nextElementSibling) card.parentNode.insertBefore(card.nextElementSibling, card);
+        calculate();
+    }
+
+    function moveRow(row, dir) {
+        const parent = row.parentNode;
+        if (dir === 'up' && row.previousElementSibling) {
+            parent.insertBefore(row, row.previousElementSibling);
+        } else if (dir === 'down' && row.nextElementSibling) {
+            parent.insertBefore(row.nextElementSibling, row);
+        }
+        calculate();
+    }
+
+    function addItem(idx, type, data = null) {
+        const target = document.getElementById(`sec-${idx}`);
+        const id = 'r-' + Math.random().toString(36).substr(2, 5);
+        const html = (type === 'dims') ? 
+            `<div class="measurement-row row-dims" id="${id}">
+                <div><label>Description</label><input type="text" class="desc-val" value="${data?data.desc:''}"></div>
+                <div><label>W</label><input type="number" class="w-val" oninput="calculate()" value="${data?data.w:''}"></div>
+                <div><label>H</label><input type="number" class="h-val" oninput="calculate()" value="${data?data.h:''}"></div>
+                <div><label>MRP/Sft</label><input type="number" class="mrp-val" oninput="calculate()" value="${data&&data.m!==undefined?data.m:''}"></div>
+                <div><label>Offer/Sft</label><input type="number" class="r-val" oninput="calculate()" value="${data?data.r:''}"></div>
+                <div style="font-weight:bold;color:var(--accent-green)">₹ <span class="row-total">0</span></div>
+                <div class="controls no-print">
+                    <button class="btn-move" onclick="moveRow(this.closest('.measurement-row'), 'up')" title="Move Up">▲</button>
+                    <button class="btn-move" onclick="moveRow(this.closest('.measurement-row'), 'down')" title="Move Down">▼</button>
+                    <button class="btn-del" onclick="document.getElementById('${id}').remove();calculate()" title="Delete Row">✕</button>
+                </div>
+            </div>` :
+            `<div class="measurement-row row-fixed" id="${id}">
+                <div><label>Item</label><input type="text" class="desc-val" value="${data?data.desc:''}"></div>
+                <div><label>Qty</label><input type="number" class="q-val" oninput="calculate()" value="${data?data.q:''}"></div>
+                <div><label>MRP</label><input type="number" class="mrp-val" oninput="calculate()" value="${data&&data.m!==undefined?data.m:''}"></div>
+                <div><label>Offer Price</label><input type="number" class="amt-val" oninput="calculate()" value="${data?data.p:''}"></div>
+                <div style="font-weight:bold;color:var(--accent-green)">₹ <span class="row-total">0</span></div>
+                <div class="controls no-print">
+                    <button class="btn-move" onclick="moveRow(this.closest('.measurement-row'), 'up')" title="Move Up">▲</button>
+                    <button class="btn-move" onclick="moveRow(this.closest('.measurement-row'), 'down')" title="Move Down">▼</button>
+                    <button class="btn-del" onclick="document.getElementById('${id}').remove();calculate()" title="Delete Row">✕</button>
+                </div>
+            </div>`;
+        target.insertAdjacentHTML('beforeend', html);
+        calculate();
+    }
+
+    function calculate() {
+        let sftTotal = 0, hqtyTotal = 0, subTotalOffer = 0, subTotalMrp = 0;
+        const indexBody = document.getElementById('index-body');
+        indexBody.innerHTML = '';
+        
+        document.querySelectorAll('.room-card').forEach((card) => {
+            let cardOfferSum = 0, cardMrpSum = 0, cardMetric = 0;
+            const type = card.dataset.roomType;
+            card.querySelectorAll('.measurement-row').forEach(row => {
+                let offerVal = 0, mrpVal = 0;
+                if(type === 'dims') {
+                    const w = parseFloat(row.querySelector('.w-val').value)||0;
+                    const h = parseFloat(row.querySelector('.h-val').value)||0;
+                    const r = parseFloat(row.querySelector('.r-val').value)||0;
+                    const mInput = parseFloat(row.querySelector('.mrp-val').value);
+                    const mrp = isNaN(mInput) ? r : mInput; // Fallback to Offer Price if MRP is blank
+                    const sft = (w*h/144); 
+                    mrpVal = sft * mrp;
+                    offerVal = sft * r; 
+                    cardMetric += sft; sftTotal += sft;
+                } else {
+                    const q = parseFloat(row.querySelector('.q-val').value)||0;
+                    const p = parseFloat(row.querySelector('.amt-val').value)||0;
+                    const mInput = parseFloat(row.querySelector('.mrp-val').value);
+                    const mrp = isNaN(mInput) ? p : mInput; // Fallback to Offer Price if MRP is blank
+                    mrpVal = q * mrp;
+                    offerVal = q * p; 
+                    cardMetric += q; hqtyTotal += q;
+                }
+                row.querySelector('.row-total').innerText = Math.round(offerVal).toLocaleString('en-IN');
+                cardMrpSum += mrpVal;
+                cardOfferSum += offerVal;
+            });
+            
+            card.querySelector('[id^="room-sft-"]').innerHTML = type === 'dims' ? `<span style="color: var(--urban-orange);">${cardMetric.toFixed(1)} Sft</span>` : `${Math.round(cardMetric)} Qty`;
+            card.querySelector('[id^="room-total-"]').innerText = Math.round(cardOfferSum).toLocaleString('en-IN');
+            subTotalMrp += cardMrpSum;
+            subTotalOffer += cardOfferSum;
+            
+            if(cardMetric > 0) {
+                // Clean SFT text for the summary table
+                const unitText = type === 'dims' ? ' Sft' : ' Qty';
+                const displayMetric = type === 'dims' ? cardMetric.toFixed(1) : Math.round(cardMetric);
+                
+                // Add strikethrough logic specifically for MRP
+                const displayMrp = `₹ ${Math.round(cardMrpSum).toLocaleString('en-IN')}`;
+                const strikeHtml = cardMrpSum > cardOfferSum ? `style="text-align:right; color:#888; text-decoration:line-through;"` : `style="text-align:right; color:#888;"`;
+
+                indexBody.insertAdjacentHTML('beforeend', `<tr>
+                    <td>${card.querySelector('.section-title').innerText}</td>
+                    <td style="text-align:center">${displayMetric}${unitText}</td>
+                    <td ${strikeHtml}>${displayMrp}</td>
+                    <td style="text-align:right">₹ ${Math.round(cardOfferSum).toLocaleString('en-IN')}</td>
+                </tr>`);
+            }
+        });
+        
+        const gstRate = parseFloat(document.getElementById('gstRate').value)||0;
+        const gstAmt = Math.round(subTotalOffer * (gstRate/100));
+        const totalSavings = Math.round(subTotalMrp - subTotalOffer);
+        
+        document.getElementById('gstLabel').innerText = `GST (${gstRate}%):`;
+        document.getElementById('idx-sub').innerText = "₹ " + Math.round(subTotalOffer).toLocaleString('en-IN');
+        document.getElementById('idx-gst').innerText = "₹ " + gstAmt.toLocaleString('en-IN');
+        document.getElementById('idx-grand').innerText = "₹ " + Math.round(subTotalOffer + gstAmt).toLocaleString('en-IN');
+        document.getElementById('idx-savings').innerText = "₹ " + (totalSavings > 0 ? totalSavings.toLocaleString('en-IN') : "0");
+        
+        document.getElementById('tbl-sft').innerText = sftTotal.toFixed(1);
+        document.getElementById('tbl-qty').innerText = Math.round(hqtyTotal);
+
+        document.getElementById('footerGrand').innerText = "₹ " + Math.round(subTotalOffer + gstAmt).toLocaleString('en-IN');
+        document.getElementById('footerSft').innerHTML = `<span style="color: var(--urban-orange);">${sftTotal.toFixed(1)} Sft</span>`;
+        document.getElementById('footerQty').innerText = Math.round(hqtyTotal) + " Nos";
+    }
+
+    async function searchDatabase() {
+        document.getElementById('searchModal').style.display = 'flex';
+        const snap = await database.ref('quotations').once('value');
+        allQuotes = snap.val() || {}; displayResults(allQuotes);
+    }
+
+    function displayResults(data) {
+        const list = document.getElementById('searchResultsList'); list.innerHTML = '';
+        Object.keys(data).forEach(key => {
+            const phoneDisplay = data[key].phone ? ` - ${data[key].phone}` : '';
+            // ONLY displays Client Name and Phone per request
+            list.insertAdjacentHTML('beforeend', `<div class="search-item"><span style="cursor:pointer;font-weight:600;flex-grow:1;" onclick="loadRecord('${key}')">${data[key].client} <span style="font-weight:normal; font-size:0.8em; color:#666;">${phoneDisplay}</span></span><button class="btn-del" onclick="deleteQuote('${key}')" title="Delete Saved Quote">✕</button></div>`);
+        });
+    }
+
+    function filterResults() {
+        const q = document.getElementById('dbSearchInput').value.toLowerCase();
+        const filtered = {};
+        Object.keys(allQuotes).forEach(k => { 
+            const nameMatch = allQuotes[k].client && allQuotes[k].client.toLowerCase().includes(q);
+            const phoneMatch = allQuotes[k].phone && allQuotes[k].phone.toLowerCase().includes(q);
+            if(nameMatch || phoneMatch) {
+                filtered[k] = allQuotes[k];
+            }
+        });
+        displayResults(filtered);
+    }
+
+    function loadRecord(key) {
+        const d = allQuotes[key];
+        document.getElementById('cName').value = d.client; document.getElementById('cPhone').value = d.phone || "";
+        document.getElementById('cAddress').value = d.address || ""; document.getElementById('gstRate').value = d.gst || 18;
+        document.getElementById('customNotes').value = d.notes || "";
+        document.getElementById('room-container').innerHTML = ''; roomCount = 0;
+        d.rooms.forEach(r => {
+            renderRoomStructure(r.name, r.type);
+            const curIdx = roomCount-1; document.getElementById(`sec-${curIdx}`).innerHTML = '';
+            r.items.forEach(it => addItem(curIdx, r.type, it));
+        });
+        calculate(); closeSearch();
+    }
+
+    async function saveToCloud() {
+        const name = document.getElementById('cName').value.trim(); if(!name) return alert("Name Required");
+        const data = { 
+            client: name, 
+            phone: document.getElementById('cPhone').value, 
+            address: document.getElementById('cAddress').value, 
+            date: document.getElementById('qDate').value, 
+            gst: document.getElementById('gstRate').value, 
+            notes: document.getElementById('customNotes').value,
+            totalSft: document.getElementById('tbl-sft').innerText, 
+            rooms: [] 
+        };
+        document.querySelectorAll('.room-card').forEach(card => {
+            const room = { name: card.querySelector('.section-title').innerText, type: card.dataset.roomType, items: [] };
+            card.querySelectorAll('.measurement-row').forEach(row => {
+                const item = { desc: row.querySelector('.desc-val').value };
+                if (room.type === 'dims') { 
+                    item.w = row.querySelector('.w-val').value; 
+                    item.h = row.querySelector('.h-val').value; 
+                    item.m = row.querySelector('.mrp-val').value;
+                    item.r = row.querySelector('.r-val').value; 
+                } else { 
+                    item.q = row.querySelector('.q-val').value; 
+                    item.m = row.querySelector('.mrp-val').value;
+                    item.p = row.querySelector('.amt-val').value; 
+                }
+                room.items.push(item);
+            });
+            data.rooms.push(room);
+        });
+        await database.ref('quotations/' + name.replace(/\s+/g, '_')).set(data); alert("Saved!");
+    }
+
+    function closeSearch() { document.getElementById('searchModal').style.display = 'none'; document.getElementById('dbSearchInput').value = ''; }
+    
+    function handlePrint() { window.print(); }
+    
+    async function shareToWhatsApp() {
+        const name = document.getElementById('cName').value || "Client";
+        const total = document.getElementById('idx-grand').innerText;
+        const msg = `*URBAN CASA QUOTATION*%0AClient: ${name}%0AGrand Total: ${total}%0A%0AView details at: https://www.urban-casa.in`;
+        
+        try {
+            const area = document.getElementById('capture-area');
+            const canvas = await html2canvas(area, { scale: 2 });
+            const blob = await new Promise(res => canvas.toBlob(res));
+            const file = new File([blob], "Quote.png", { type: 'image/png' });
+            if (navigator.share) {
+                await navigator.share({ files: [file], title: 'Urban Casa Quote' });
+            } else {
+                window.open(`https://wa.me/?text=${msg}`);
+            }
+        } catch (e) {
+            window.open(`https://wa.me/?text=${msg}`);
+        }
+    }
+    
+    function addNewCategory() {
+        const name = prompt("Enter Category Name:");
+        if(!name) return;
+        const type = confirm("Use Dimensions (Sft)?") ? "dims" : "fixed";
+        renderRoomStructure(name, type);
+    }
+    
+    async function deleteQuote(key) {
+        if(confirm("Are you sure you want to delete this saved quote from the database?")) {
+            await database.ref('quotations/' + key).remove();
+            searchDatabase(); 
+        }
+    }
+    
+    function exportToExcel() {
+        const cName = document.getElementById('cName').value || "New_Client";
+        const cPhone = document.getElementById('cPhone').value || "N/A";
+        const wb = XLSX.utils.book_new();
+        
+        // --- SHEET 1: SUMMARY ---
+        const summaryData = [
+            ["URBAN CASA - Premium Modular Kitchens & Wardrobes"],
+            ["Location:", "Raichandani Mall - Kompally"],
+            ["Client Name:", cName],
+            ["Contact:", cPhone],
+            ["Date:", document.getElementById('qDate').value],
+            [],
+            ["Section Description", "SFT/UNITS", "Total MRP", "Offer Price"]
+        ];
+
+        const tableRows = document.querySelectorAll('#index-body tr');
+        tableRows.forEach(row => {
+            const cols = row.querySelectorAll('td');
+            if(cols.length === 4) {
+                // Since there's no HTML left in the summary columns, we just pull innerText
+                summaryData.push([cols[0].innerText, cols[1].innerText, cols[2].innerText, cols[3].innerText]);
+            }
+        });
+
+        summaryData.push([]);
+        summaryData.push(["", "", "Sub-Total:", document.getElementById('idx-sub').innerText]);
+        summaryData.push(["", "", document.getElementById('gstLabel').innerText, document.getElementById('idx-gst').innerText]);
+        summaryData.push(["", "", "GRAND TOTAL:", document.getElementById('idx-grand').innerText]);
+        summaryData.push(["", "", "TOTAL SAVINGS:", document.getElementById('idx-savings').innerText]);
+
+        const wsSummary = XLSX.utils.aoa_to_sheet(summaryData);
+        wsSummary['!cols'] = [{ wch: 35 }, { wch: 15 }, { wch: 15 }, { wch: 20 }];
+        XLSX.utils.book_append_sheet(wb, wsSummary, "Summary");
+
+        // --- SHEET 2: DETAILED BREAKDOWN ---
+        const detailData = [
+            ["URBAN CASA - Detailed Item Breakdown"],
+            ["Location:", "Raichandani Mall - Kompally"],
+            ["Client Name:", cName],
+            []
+        ];
+
+        document.querySelectorAll('.room-card').forEach(card => {
+            const roomName = card.querySelector('.section-title').innerText;
+            const type = card.dataset.roomType;
+            detailData.push([`--- ${roomName.toUpperCase()} ---`]);
+            
+            if (type === 'dims') {
+                detailData.push(["Description", "Width (in)", "Height (in)", "MRP/Sft", "Offer/Sft", "Total (INR)"]);
+            } else {
+                detailData.push(["Item Description", "Quantity", "MRP", "Offer Price", "", "Total (INR)"]);
+            }
+
+            card.querySelectorAll('.measurement-row').forEach(row => {
+                const desc = row.querySelector('.desc-val').value || "-";
+                const rowTotal = row.querySelector('.row-total').innerText;
+                if (type === 'dims') {
+                    const w = row.querySelector('.w-val').value || 0;
+                    const h = row.querySelector('.h-val').value || 0;
+                    const m = row.querySelector('.mrp-val').value || 0;
+                    const r = row.querySelector('.r-val').value || 0;
+                    detailData.push([desc, w, h, m, r, rowTotal]);
+                } else {
+                    const q = row.querySelector('.q-val').value || 0;
+                    const m = row.querySelector('.mrp-val').value || 0;
+                    const p = row.querySelector('.amt-val').value || 0;
+                    detailData.push([desc, q, m, p, "", rowTotal]);
+                }
+            });
+            detailData.push([]); 
+        });
+
+        const wsDetails = XLSX.utils.aoa_to_sheet(detailData);
+        wsDetails['!cols'] = [{ wch: 40 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 20 }];
+        XLSX.utils.book_append_sheet(wb, wsDetails, "Detailed Breakdown");
+
+        // --- INITIATE DOWNLOAD ---
+        XLSX.writeFile(wb, `UrbanCasa_Quote_${cName.replace(/\s+/g, '_')}.xlsx`);
+    }
+</script>
+</body>
+</html>
