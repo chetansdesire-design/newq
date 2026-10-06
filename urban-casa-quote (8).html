@@ -1,0 +1,1254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>URBAN CASA | Executive Quote</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+
+    <script>
+        const firebaseConfig = { databaseURL: "https://modular-quotation-default-rtdb.firebaseio.com/" };
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
+    </script>
+    
+    <style>
+        :root { --urban-navy: #1a2a3a; --urban-gold: #c5a059; --row-accent: #f8f9fa; --accent-green: #27ae60; --danger: #e74c3c; --urban-orange: #ff8c00; }
+        body { font-family: 'Segoe UI', Roboto, sans-serif; background: #eef2f3; margin: 0; padding-bottom: 140px; color: #2c3e50; font-size: 11px; line-height: 1.4; }
+        * { box-sizing: border-box; }
+        
+        .brand-header { background: var(--urban-navy); padding: 20px; text-align: left; border-bottom: 5px solid var(--urban-gold); color: white; position: relative; }
+        .brand-name { font-size: 1.8rem; font-weight: 900; letter-spacing: 2px; margin: 0; }
+        .brand-tagline { color: var(--urban-gold); font-size: 0.75rem; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 10px; font-weight: 600; }
+        .contact-info-line { font-size: 0.7rem; display: flex; flex-wrap: wrap; gap: 15px; align-items: center; opacity: 0.9; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 10px; margin-top: 5px; }
+
+        .quote-no { margin-left: auto; font-size: 0.8rem; font-weight: 800; color: var(--urban-gold); letter-spacing: 1.5px; font-family: 'Courier New', monospace; }
+        .quotation-label { font-size: 0.75rem; font-weight: 800; color: white; text-transform: uppercase; letter-spacing: 2px; border: 1px solid var(--urban-gold); padding: 4px 10px; border-radius: 4px; }
+        .version-tag { position: absolute; top: 10px; right: 15px; font-size: 0.65rem; color: rgba(255,255,255,0.5); font-weight: bold; }
+
+        .container { padding: 10px; max-width: 950px; margin: auto; }
+        .card { background: white; border-radius: 8px; padding: 15px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); border: 1px solid #e0e6ed; overflow: hidden; }
+        
+        .client-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; align-items: end; }
+        .spec-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
+        
+        .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 2px solid var(--urban-gold); padding-bottom: 5px; }
+        .section-title { font-weight: 800; color: var(--urban-navy); font-size: 0.85rem; text-transform: uppercase; }
+        
+        .summary-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+        .summary-table thead tr { background: var(--urban-navy); color: white; }
+        .summary-table th { text-align: left; padding: 10px 8px; font-size: 0.7rem; text-transform: uppercase; border: none; }
+        .summary-table td { padding: 8px; border-bottom: 1px solid #f0f0f0; font-size: 0.8rem; }
+        
+        .measurement-row { display: grid; gap: 10px; margin-bottom: 10px; align-items: end; background: var(--row-accent); padding: 12px; border-radius: 6px; border: 1px solid #dee2e6; transition: background 0.2s; }
+        .measurement-row:focus-within { background: #fff; border-color: var(--urban-gold); box-shadow: 0 0 5px rgba(197, 160, 89, 0.3); }
+        .row-dims { grid-template-columns: 2fr 0.6fr 0.6fr 0.8fr 0.8fr 1fr auto; }
+        .row-fixed { grid-template-columns: 2.5fr 0.6fr 0.8fr 0.8fr 1fr auto; }
+        
+        @media (max-width: 600px) {
+            .row-dims, .row-fixed { grid-template-columns: 1fr 1fr; gap: 8px; }
+            .row-dims div:first-child, .row-fixed div:first-child { grid-column: span 2; }
+            .footer-content { justify-content: space-between; padding: 0 10px; }
+            .footer-stat { min-width: 50px; font-size: 0.8rem; }
+            .quote-no { margin-left: 0; width: 100%; text-align: center; margin-top: 5px; }
+            .quotation-label { width: 100%; text-align: center; }
+        }
+
+        .controls { display: flex; gap: 4px; justify-content: flex-end; align-items: center; }
+        .btn-move { border:1px solid #ddd; background:white; cursor:pointer; font-size:0.7rem; padding: 3px 6px; border-radius: 3px; }
+        .btn-del { border:none; background:none; color:var(--danger); cursor:pointer; font-size:1rem; padding: 0 5px; }
+        
+        .room-footer { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #eee; margin-top: 10px; padding-top: 10px; }
+        
+        input, select, textarea { width: 100%; padding: 8px; border: 1px solid #ced4da; border-radius: 4px; font-size: 11px; box-sizing: border-box; background: white; }
+        label { display: block; font-size: 0.6rem; color: var(--urban-navy); margin-bottom: 4px; font-weight: 700; text-transform: uppercase; }
+        
+        .sign-container { display: flex; justify-content: space-between; margin-top: 10px; gap: 20px; }
+        .sign-box { flex: 1; border-top: 1px solid #333; text-align: center; padding-top: 8px; margin-top: 30px; font-weight: 700; font-size: 0.7rem; color: var(--urban-navy); text-transform: uppercase; }
+
+        .tc-list { font-size: 0.65rem; color: #444; padding-left: 15px; margin: 0; }
+
+        .footer-nav { position: fixed; bottom: 0; width: 100%; background: var(--urban-navy); color: white; padding: 10px 0; border-top: 4px solid var(--urban-gold); z-index: 1000; }
+        .footer-content { max-width: 950px; margin: auto; display: flex; align-items: center; justify-content: space-around; flex-wrap: nowrap; gap: 5px; overflow-x: auto; }
+        .footer-stat { text-align: center; min-width: 60px; border-right: 1px solid rgba(255,255,255,0.1); padding-right: 5px; }
+        .footer-stat:last-of-type { border-right: none; }
+        .footer-stat b { color: var(--urban-gold); font-size: 0.9rem; white-space: nowrap; }
+        
+        .action-btns { display: flex; gap: 8px; align-items: center; }
+        .btn-action { width: 34px; height: 34px; border-radius: 8px; border: none; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1rem; }
+        .bg-wa { background: #25d366; } .bg-pdf { background: #e74c3c; } .bg-print { background: #3498db; } .bg-excel { background: #27ae60; } .bg-save { background: #6c5ce7; } .bg-search { background: #a29bfe; }
+
+        #dupModal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:3000; align-items:center; justify-content:center; }
+        #searchModal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:2000; align-items:center; justify-content:center; }
+        .modal-content { background:white; width:90%; max-width:400px; border-radius:12px; padding:20px; }
+        #searchResultsList { max-height:300px; overflow-y:auto; border:1px solid #f0f0f0; border-radius:8px; margin: 10px 0; }
+        .search-item { padding:12px; border-bottom:1px solid #eee; display:flex; justify-content:space-between; align-items:center; }
+        .search-name { font-weight:700; font-size:0.85rem; color:var(--urban-navy); }
+        .search-sub { font-weight:600; font-size:0.7rem; color:var(--urban-gold); font-family:'Courier New', monospace; letter-spacing:0.5px; margin-top:2px; }
+
+        #searchModal .modal-content { width: 92%; max-width: 460px; padding: 0; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.35); }
+        .sm-head { background: var(--urban-navy); color: #fff; padding: 16px 18px 14px; border-bottom: 4px solid var(--urban-gold); display: flex; justify-content: space-between; align-items: center; }
+        .sm-title { margin: 0; font-size: 1rem; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase; }
+        .sm-count { font-size: 0.65rem; font-weight: 700; color: var(--urban-gold); letter-spacing: 0.5px; }
+        .sm-body { padding: 14px 16px 16px; }
+        .sm-search { position: relative; }
+        .sm-search i { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #9aa5b1; }
+        .sm-search input { padding: 11px 12px 11px 34px; border: 2px solid #e3e7ec; border-radius: 8px; font-size: 12px; }
+        .sm-search input:focus { outline: none; border-color: var(--urban-gold); }
+        #searchResultsList { max-height: 380px; overflow-y: auto; margin: 12px 0; border: none; border-radius: 0; display: flex; flex-direction: column; gap: 8px; padding: 2px; }
+        .search-item { background: #fff; border: 1px solid #e6eaf0; border-left: 4px solid var(--urban-gold); border-radius: 8px; padding: 10px 12px; display: flex; align-items: center; gap: 10px; cursor: pointer; transition: all 0.15s; }
+        .search-item:hover { background: #fffdf6; box-shadow: 0 3px 12px rgba(26,42,58,0.12); transform: translateY(-1px); }
+        .si-avatar { width: 38px; height: 38px; border-radius: 50%; background: var(--urban-navy); color: var(--urban-gold); font-weight: 800; font-size: 1rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .si-main { flex: 1; min-width: 0; }
+        .si-name { font-weight: 800; color: var(--urban-navy); font-size: 0.88rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .si-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 3px 8px; margin-top: 3px; font-size: 0.65rem; color: #6b7785; }
+        .si-chip { background: rgba(197,160,89,0.16); color: #8a6a24; font-family: 'Courier New', monospace; font-weight: 700; letter-spacing: 0.5px; padding: 1px 7px; border-radius: 4px; }
+        .si-right { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+        .si-amt { font-weight: 800; color: var(--accent-green); font-size: 0.8rem; white-space: nowrap; }
+        .sm-empty { text-align: center; padding: 30px 10px; color: #8a95a3; font-size: 0.8rem; }
+        .sm-close { width: 100%; padding: 11px; background: #eef1f4; border: none; border-radius: 8px; font-weight: 800; letter-spacing: 1px; color: var(--urban-navy); cursor: pointer; }
+        .sm-close:hover { background: #e3e7ec; }
+
+        .mirror { display: none; }
+
+        .mat-detail-box { margin-bottom: 12px; border-left: 3px solid var(--urban-gold); padding-left: 12px; background: #fafbfc; padding: 10px 10px 10px 12px; border-radius: 0 6px 6px 0; }
+        .mat-detail-title { font-weight: 800; color: var(--urban-navy); font-size: 0.85rem; text-transform: uppercase; margin-bottom: 4px; }
+        .mat-detail-desc { font-size: 0.75rem; color: #444; line-height: 1.4; }
+
+        /* ===== PDF export layout (same design as print) ===== */
+        body.pdf-mode { background: #fff !important; padding: 0 !important; margin: 0; font-size: 10.5px; }
+        .pdf-mode .version-tag { display: none !important; }
+        .pdf-mode .card { border: 1px solid #e3e7ec !important; border-radius: 6px !important; box-shadow: none !important; padding: 12px !important; }
+        .pdf-mode .page-break { border: none !important; }
+        .pdf-mode input, .pdf-mode select { border: none !important; background: transparent !important; padding: 0 !important; appearance: none; -webkit-appearance: none; color: #111; font-weight: 600; font-size: 10.5px; }
+        .pdf-mode input[type=number] { -moz-appearance: textfield; }
+        .pdf-mode input[type=text], .pdf-mode textarea { display: none !important; }
+
+        .pdf-mode .mirror { display: block; font-size: 10.5px; font-weight: 600; color: #111; line-height: 1.35; min-height: 1.35em; white-space: normal; word-break: break-word; text-align: left; }
+        .pdf-mode .mirror-pre { white-space: pre-wrap; font-weight: 500; }
+        .pdf-mode .client-grid .mirror { font-size: 11.5px; font-weight: 700; color: #1a2a3a; }
+
+        .pdf-mode .brand-header { padding: 14px 16px !important; border-radius: 6px; background: linear-gradient(135deg, #121e2a 0%, #1a2a3a 55%, #25405a 100%) !important; }
+        .pdf-mode .brand-name { letter-spacing: 3px; }
+        .pdf-mode .contact-info-line { flex-wrap: nowrap !important; gap: 10px !important; font-size: 9.5px !important; }
+        .pdf-mode .contact-info-line > span { white-space: nowrap; }
+        .pdf-mode .quote-no { font-size: 11px !important; letter-spacing: 1px !important; margin-left: auto !important; width: auto !important; background: rgba(197,160,89,0.15); border: 1px solid #c5a059; padding: 3px 9px; border-radius: 4px; }
+        .pdf-mode .quotation-label { font-size: 10px !important; letter-spacing: 1.5px !important; padding: 3px 9px !important; width: auto !important; margin-top: 0 !important; }
+
+        .pdf-mode .section-header { margin-bottom: 8px; padding-bottom: 5px; }
+        .pdf-mode .section-title { letter-spacing: 0.6px; }
+        .pdf-mode .section-title::before { content: ''; display: inline-block; width: 4px; height: 11px; background: #c5a059; border-radius: 2px; margin-right: 7px; vertical-align: -1px; }
+
+        .pdf-mode #summary-section > .card:first-child { border-left: 4px solid #c5a059 !important; background: #fcfbf7 !important; }
+        .pdf-mode .client-grid { grid-template-columns: 1.4fr 1fr 2.2fr 0.9fr !important; }
+        .pdf-mode .client-grid label { color: #9a7b35; letter-spacing: 0.6px; }
+
+        .pdf-mode .summary-table th { padding: 9px 10px; letter-spacing: 0.5px; }
+        .pdf-mode .summary-table td { padding: 8px 10px; border-bottom: 1px solid #eef0f3; }
+        .pdf-mode .summary-table tbody tr:nth-child(even) td { background: #f8f9fb; }
+        .pdf-mode .summary-table tfoot td { border-bottom: none; white-space: nowrap; }
+
+        .pdf-mode #summary-section > div[style*="grid-template-columns"] { grid-template-columns: 1fr !important; gap: 8px !important; }
+        .pdf-mode .tc-list { font-size: 0.68rem; line-height: 1.6; padding-left: 14px; }
+        .pdf-mode .tc-list li { white-space: nowrap; }
+
+        .pdf-mode .measurement-row { gap: 8px; padding: 6px 4px !important; margin: 0 !important; background: transparent !important; border: none !important; border-bottom: 1px solid #eef0f3 !important; border-radius: 0 !important; box-shadow: none !important; }
+        .pdf-mode .measurement-row label { color: #9a7b35; font-size: 0.55rem; letter-spacing: 0.5px; }
+        .pdf-mode .measurement-row:not(.first-visible) label { display: none !important; }
+        .pdf-mode .row-dims > div:nth-child(n+2):nth-child(-n+6), .pdf-mode .row-fixed > div:nth-child(n+2):nth-child(-n+5) { text-align: right; }
+        .pdf-mode .measurement-row input[type=number] { text-align: right; }
+
+        .pdf-mode .room-footer { background: linear-gradient(90deg, #faf6ec, #fffdf8); border-top: 1px solid #c5a059 !important; margin: 10px -12px -12px -12px !important; padding: 8px 14px !important; justify-content: flex-end; }
+
+        .pdf-mode .sign-container { margin-top: 10px !important; }
+        .pdf-mode .sign-box { margin-top: 15px !important; padding-top: 5px !important; border-top: 1px solid #1a2a3a; letter-spacing: 0.8px; }
+        .pdf-mode #capture-area { width: 733px; }
+        .pdf-mode .container { max-width: 100%; padding: 0; margin: 0; }
+        .pdf-mode .no-print, .pdf-mode .btn-del, .pdf-mode .btn-move, .pdf-mode .btn-action, .pdf-mode .footer-nav, .pdf-mode #searchModal, .pdf-mode #dupModal, .pdf-mode .empty-row-print, .pdf-mode .empty-room-print { display: none !important; }
+        .pdf-mode .card { margin-bottom: 0 !important; }
+
+        @media print {
+            *, body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
+            .no-print, .footer-nav, #searchModal, #dupModal, .btn-del, .btn-move, .btn-action, .empty-room-print, .empty-row-print { display: none !important; }
+            @page { size: A4 portrait; margin: 8mm; }
+            .container { max-width: 100%; padding: 0; }
+            body { background: #fff !important; padding: 0 !important; margin: 0; font-size: 10.5px; }
+            .version-tag { display: none !important; }
+            .card { border: 1px solid #e3e7ec !important; border-radius: 6px !important; box-shadow: none !important; padding: 12px !important; }
+            .page-break { border: none !important; }
+            input, select { border: none !important; background: transparent !important; padding: 0 !important; appearance: none; -webkit-appearance: none; color: #111; font-weight: 600; font-size: 10.5px; }
+            input[type=number] { -moz-appearance: textfield; }
+            input[type=text], textarea { display: none !important; }
+
+            .mirror { display: block; font-size: 10.5px; font-weight: 600; color: #111; line-height: 1.35; min-height: 1.35em; white-space: normal; word-break: break-word; text-align: left; }
+            .mirror-pre { white-space: pre-wrap; font-weight: 500; }
+            .client-grid .mirror { font-size: 11.5px; font-weight: 700; color: #1a2a3a; }
+
+            .brand-header { padding: 14px 16px !important; border-radius: 6px; background: linear-gradient(135deg, #121e2a 0%, #1a2a3a 55%, #25405a 100%) !important; }
+            .brand-name { letter-spacing: 3px; }
+            .contact-info-line { flex-wrap: nowrap !important; gap: 10px !important; font-size: 9.5px !important; }
+            .contact-info-line > span { white-space: nowrap; }
+            .quote-no { font-size: 11px !important; letter-spacing: 1px !important; margin-left: auto !important; width: auto !important; background: rgba(197,160,89,0.15); border: 1px solid #c5a059; padding: 3px 9px; border-radius: 4px; }
+            .quotation-label { font-size: 10px !important; letter-spacing: 1.5px !important; padding: 3px 9px !important; width: auto !important; margin-top: 0 !important; }
+
+            .section-header { margin-bottom: 8px; padding-bottom: 5px; }
+            .section-title { letter-spacing: 0.6px; }
+            .section-title::before { content: ''; display: inline-block; width: 4px; height: 11px; background: #c5a059; border-radius: 2px; margin-right: 7px; vertical-align: -1px; }
+
+            #summary-section > .card:first-child { border-left: 4px solid #c5a059 !important; background: #fcfbf7 !important; }
+            .client-grid { grid-template-columns: 1.4fr 1fr 2.2fr 0.9fr !important; }
+            .client-grid label { color: #9a7b35; letter-spacing: 0.6px; }
+
+            .summary-table th { padding: 9px 10px; letter-spacing: 0.5px; }
+            .summary-table td { padding: 8px 10px; border-bottom: 1px solid #eef0f3; }
+            .summary-table tbody tr:nth-child(even) td { background: #f8f9fb; }
+            .summary-table tfoot td { border-bottom: none; white-space: nowrap; }
+
+            #summary-section > div[style*="grid-template-columns"] { grid-template-columns: 1fr !important; gap: 8px !important; }
+            .tc-list { font-size: 0.68rem; line-height: 1.6; padding-left: 14px; }
+            .tc-list li { white-space: nowrap; }
+
+            .measurement-row { gap: 8px; padding: 6px 4px !important; margin: 0 !important; background: transparent !important; border: none !important; border-bottom: 1px solid #eef0f3 !important; border-radius: 0 !important; box-shadow: none !important; }
+            .measurement-row label { color: #9a7b35; font-size: 0.55rem; letter-spacing: 0.5px; }
+            .measurement-row:not(.first-visible) label { display: none !important; }
+            .row-dims > div:nth-child(n+2):nth-child(-n+6), .row-fixed > div:nth-child(n+2):nth-child(-n+5) { text-align: right; }
+            .measurement-row input[type=number] { text-align: right; }
+
+            .room-footer { background: linear-gradient(90deg, #faf6ec, #fffdf8); border-top: 1px solid #c5a059 !important; margin: 10px -12px -12px -12px !important; padding: 8px 14px !important; justify-content: flex-end; }
+
+            .sign-container { margin-top: 10px !important; }
+            .sign-box { margin-top: 15px !important; padding-top: 5px !important; border-top: 1px solid #1a2a3a; letter-spacing: 0.8px; }
+            .card { page-break-inside: avoid; break-inside: avoid; margin-bottom: 8px !important; }
+            #summary-section > div[style*="grid-template-columns"] .card { margin-bottom: 0 !important; }
+            .page-break { page-break-before: always; break-before: page; margin-top: 0 !important; }
+            .brand-header { margin-bottom: 10px; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="capture-area">
+    <div class="brand-header">
+        <div class="version-tag">v3.4</div>
+        <div class="brand-name">URBAN CASA</div>
+        <div class="brand-tagline">Premium Modular Kitchens & Wardrobes</div>
+        <div class="contact-info-line">
+            <span><i class="fas fa-map-marker-alt"></i> Raichandani Mall - Kompally</span>
+            <span><i class="fas fa-phone-alt"></i> +91 888 66 88 090</span>
+            <span><i class="fas fa-globe"></i> https://www.urban-casa.in</span>
+            <span class="quote-no">No: <span id="quoteNo">UC----</span></span>
+            <span class="quotation-label">QUOTATION</span>
+        </div>
+    </div>
+
+    <div class="container">
+        <div id="summary-section">
+            <div class="card">
+                <div class="client-grid">
+                    <div><label>Client Name</label><input type="text" id="cName" placeholder="Full Name"></div>
+                    <div><label>Phone</label><input type="tel" id="cPhone" placeholder="Mobile"></div>
+                    <div><label>Address</label><input type="text" id="cAddress" placeholder="Site Location"></div>
+                    <div><label>Date</label><input type="date" id="qDate" onchange="refreshQuoteNoPreview()"></div>
+                    <div class="no-print"><label>Tax Factor %</label><input type="number" id="gstRate" value="18" oninput="calculate()"></div>
+                    
+                    <div class="no-print">
+                        <label>Unit</label>
+                        <select id="dimUnit" onchange="calculate()">
+                            <option value="mm" selected>MM (mm)</option>
+                            <option value="in">Inches (in)</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="section-header"><span class="section-title">Project Summary</span></div>
+                <table class="summary-table">
+                    <thead>
+                        <tr>
+                            <th style="width:38%">Section Description</th>
+                            <th style="text-align:center; width:16%">SFT/UNITS</th>
+                            <th style="text-align:right; width:23%">Total MRP</th>
+                            <th style="text-align:right; width:23%">Offer Price</th>
+                        </tr>
+                    </thead>
+                    <tbody id="index-body"></tbody>
+                    <tfoot>
+                        <tr style="font-weight:bold;">
+                            <td colspan="2" style="text-align: right; padding: 10px;">TOTAL MRP:</td>
+                            <td id="idx-total-mrp" style="text-align: right; padding: 10px; color: #888; text-decoration: line-through;">₹ 0</td>
+                            <td></td>
+                        </tr>
+                        <tr style="background: var(--urban-navy); color: white; font-weight: bold;">
+                            <td style="padding: 12px; text-align: left; font-size: 0.85rem; letter-spacing: 0.5px; color: white; white-space: nowrap;">
+                                SFT: <span id="tbl-sft">0</span> &nbsp;&nbsp;|&nbsp;&nbsp; QTY: <span id="tbl-qty">0</span>
+                            </td>
+                            <td colspan="2" style="text-align: right; padding: 12px; white-space: nowrap;">TOTAL AMOUNT (INCL. TAXES):</td>
+                            <td id="idx-grand" style="text-align: right; padding: 12px;">₹ 0</td>
+                        </tr>
+                        <tr style="background: var(--accent-green); color: white; font-weight: bold;">
+                            <td colspan="2" style="padding: 4px 12px; text-align: left; font-size: 0.7rem; letter-spacing: 0.5px;">TOTAL SAVINGS ON BILL:</td>
+                            <td colspan="2" id="idx-savings" style="text-align: right; padding: 4px 12px; font-size: 0.75rem;">₹ 0</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px;">
+                <div class="card">
+                    <div class="section-header"><span class="section-title">Terms & Conditions</span></div>
+                    <ul class="tc-list">
+                        <li><b>Validity:</b> Quotation is valid for 15 days from the date of issue.</li>
+                        <li><b>Measurement Unit:</b> All dimensions and calculations are in <span id="tc-unit-display" style="font-weight:800; color:var(--urban-navy);">MM (mm)</span>.</li>
+                        <li><b>Booking:</b> 10% advance to initiate measurements & design.</li>
+                        <li><b>Production:</b> 50% payment after design sign-off.</li>
+                        <li><b>Dispatch:</b> 30% payment before materials leave factory.</li>
+                        <li><b>Handover:</b> Final 10% payment due upon completion.</li>
+                        <li><b>Warranty:</b> 10-Year Warranty on BWP Plywood factory defects.</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <div class="section-header"><span class="section-title">Special Notes</span></div>
+                    <textarea id="customNotes" style="height: 100px; border:none; background: #fffdf5;" placeholder="Additional requirements..."></textarea>
+                </div>
+            </div>
+
+            <div class="sign-container">
+                <div class="sign-box">Client Signature</div>
+                <div class="sign-box">Store Manager Signature</div>
+            </div>
+
+            <div class="card" style="margin-top: 20px;">
+                <div class="section-header"><span class="section-title">Material & Hardware Specifications</span></div>
+                <div class="spec-grid">
+                    <div><label>Core Material / Carcase</label><input type="text" id="matCore" placeholder="e.g. BWP Plywood" oninput="updateMaterialAnnexure()"></div>
+                    <div><label>Shutters Outer Finish</label><input type="text" id="matOuter" placeholder="e.g. 1mm Acrylic / Laminate" oninput="updateMaterialAnnexure()"></div>
+                    <div><label>Inner Finish / Liner</label><input type="text" id="matInner" placeholder="e.g. 0.8mm White Laminate" oninput="updateMaterialAnnexure()"></div>
+                    <div><label>Hardware & Fittings</label><input type="text" id="matHardware" placeholder="e.g. Hettich Soft-close" oninput="updateMaterialAnnexure()"></div>
+                    <div><label>Edge Banding</label><input type="text" id="matEdge" placeholder="e.g. Rehau PUR banded" oninput="updateMaterialAnnexure()"></div>
+                    <div><label>Handles & Profiles</label><input type="text" id="matHandles" placeholder="e.g. Gola Rose Gold Profile" oninput="updateMaterialAnnexure()"></div>
+                    <div><label>Glass & Aluminium Profiles</label><input type="text" id="matGlass" placeholder="e.g. Tinted Glass in Black Profile" oninput="updateMaterialAnnexure()"></div>
+                    <div><label>Skirting & Base</label><input type="text" id="matSkirting" placeholder="e.g. PVC Skirting" oninput="updateMaterialAnnexure()"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="room-container"></div>
+        
+        <div class="card" style="margin-top: 20px; border:none; box-shadow:none;">
+            <p style="text-align: center; font-size: 0.6rem; color: #888; text-transform: uppercase;">--- Authorized Quotation End ---</p>
+            <div class="sign-container">
+                <div class="sign-box">Client Acceptance</div>
+                <div class="sign-box">Urban Casa Authorized Sign</div>
+            </div>
+        </div>
+
+        <div class="no-print" style="text-align: center; margin-bottom: 20px;">
+             <button onclick="addNewCategory()" style="padding: 12px 24px; background: var(--urban-gold); border:none; border-radius:6px; color:white; font-weight:900; cursor:pointer;">+ ADD NEW CATEGORY</button>
+        </div>
+
+        <div id="material-details-page" class="card page-break" style="display: none;">
+            <div class="brand-header" style="margin: -15px -15px 20px -15px; border-radius: 8px 8px 0 0;">
+                <div class="brand-name" style="font-size: 1.4rem;">MATERIAL TECHNICAL ANNEXURE</div>
+                <div class="brand-tagline">Simple material guide & specifications</div>
+            </div>
+            <div id="mat-details-content"></div>
+            <div style="margin-top: 20px; font-size: 0.7rem; color: #666; border-top: 1px dashed #ccc; padding-top: 15px; text-align: justify;">
+                <b>Important Note:</b> All materials are processed on high-precision European automated machinery to ensure clean cuts, seamless edge-banding, and long-lasting durability for your home.
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<div id="searchModal"><div class="modal-content">
+    <div class="sm-head">
+        <h3 class="sm-title">Saved Quotations</h3>
+        <span class="sm-count" id="smCount"></span>
+    </div>
+    <div class="sm-body">
+        <div class="sm-search">
+            <i class="fas fa-search"></i>
+            <input type="text" id="dbSearchInput" placeholder="Search name, quote no or phone..." oninput="filterResults()">
+        </div>
+        <div id="searchResultsList"></div>
+        <button class="sm-close" onclick="closeSearch()">CLOSE</button>
+    </div>
+</div></div>
+
+<div id="dupModal"><div class="modal-content">
+    <h3 style="margin-top:0; color:var(--urban-navy);">Quotation Already Exists</h3>
+    <p id="dupMsg" style="font-size:12px; line-height:1.5; margin:8px 0 10px;"></p>
+    <p style="font-size:11px; line-height:1.5; color:#666; margin:0 0 14px;">
+        <b>Update</b> overwrites the saved quotation and keeps its Quote No.<br>
+        <b>Replace</b> overwrites it and issues a new Quote No.
+    </p>
+    <div style="display:flex; flex-direction:column; gap:8px;">
+        <button id="dupUpdate" style="padding:11px; background:#6c5ce7; color:white; border:none; border-radius:6px; font-weight:800; cursor:pointer;">UPDATE (KEEP QUOTE NO)</button>
+        <button id="dupReplace" style="padding:11px; background:var(--urban-gold); color:white; border:none; border-radius:6px; font-weight:800; cursor:pointer;">REPLACE (NEW QUOTE NO)</button>
+        <button id="dupCancel" style="padding:11px; background:#eee; border:none; border-radius:6px; font-weight:bold; cursor:pointer;">CANCEL</button>
+    </div>
+</div></div>
+
+<div class="footer-nav no-print">
+    <div class="footer-content">
+        <div class="footer-stat"><small>Wood</small><br><b id="footerSft">0</b></div>
+        <div class="footer-stat"><small>Hardw</small><br><b id="footerQty">0</b></div>
+        <div class="footer-stat"><small>Total Amount</small><br><b id="footerGrand">₹ 0</b></div>
+        <div class="action-btns">
+            <button class="btn-action bg-save" onclick="saveToCloud()" title="Save Quotation"><i class="fas fa-cloud-upload-alt"></i></button>
+            <button class="btn-action bg-search" onclick="searchDatabase()" title="Search Database"><i class="fas fa-search"></i></button>
+            <button class="btn-action bg-excel" onclick="exportToExcel()" title="Export to Excel"><i class="fas fa-file-excel"></i></button>
+            <button class="btn-action bg-print" onclick="handlePrint()" title="Print Quotation"><i class="fas fa-print"></i></button>
+            <button class="btn-action bg-pdf" onclick="exportToPDF()" title="Download PDF"><i class="fas fa-file-pdf"></i></button>
+            <button class="btn-action bg-wa" onclick="shareToWhatsApp()" title="Share as Image via WhatsApp"><i class="fab fa-whatsapp"></i></button>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('input', function(e) {
+        if (e.target.tagName === 'INPUT' && e.target.type === 'text') {
+            let start = e.target.selectionStart;
+            let val = e.target.value;
+            let capitalized = val.replace(/\b\w/g, char => char.toUpperCase());
+            if (val !== capitalized) {
+                e.target.value = capitalized;
+                e.target.setSelectionRange(start, start);
+            }
+        }
+    });
+
+    let roomCount = 0;
+    let allQuotes = {};
+    let currentQuoteNo = null;   // quote number of the quote currently loaded/saved
+    let currentQuoteKey = null;  // DB key of the quote currently loaded/saved
+
+    // ---------- Quote number (UC + MM + YY + 3-digit running no.) ----------
+    function getPeriodKey() {
+        const d = document.getElementById('qDate').value || new Date().toISOString().split('T')[0];
+        const parts = d.split('-');
+        return parts[1] + parts[0].slice(2);   // MMYY
+    }
+
+    async function refreshQuoteNoPreview() {
+        const el = document.getElementById('quoteNo');
+        if (currentQuoteNo) { el.innerText = currentQuoteNo; return; }
+        const period = getPeriodKey();
+        try {
+            const snap = await database.ref('counters/' + period).once('value');
+            el.innerText = 'UC' + period + String((snap.val() || 0) + 1).padStart(3, '0');
+        } catch (e) {
+            el.innerText = 'UC' + period + '---';
+        }
+    }
+
+    async function allocateQuoteNo() {
+        const period = getPeriodKey();
+        const res = await database.ref('counters/' + period).transaction(c => (c || 0) + 1);
+    if (!res.committed) throw new Error('Could not generate a quote number. Please try again.');
+        return 'UC' + period + String(res.snapshot.val()).padStart(3, '0');
+    }
+
+    window.onload = () => {
+        document.getElementById('qDate').value = new Date().toISOString().split('T')[0];
+        refreshQuoteNoPreview();
+        
+        // Default Room Structure Loading
+        renderRoomStructure("Kitchen", "dims");
+        renderRoomStructure("Dining / Drawing / Living Room", "dims");
+        renderRoomStructure("Master Bedroom", "dims");
+        renderRoomStructure("Childrens Bedroom", "dims");
+        renderRoomStructure("Guest Bedroom", "dims");
+        renderRoomStructure("Hardware & Accessories", "fixed");
+        
+        calculate();
+        updateMaterialAnnexure();
+    };
+
+    const MATERIAL_DEFS = [
+        { id: 'matCore', title: 'Core Material & Carcase', desc: "The main structural body of your cabinets. Strong, water-resistant, termite-proof, and built to handle heavy weight without sagging." },
+        { id: 'matOuter', title: 'Outer Shutters & Facade', desc: "The front finish of your woodwork. Scratch-resistant, easy to clean, UV color-stable, and designed for a modern aesthetic." },
+        { id: 'matInner', title: 'Inner Laminate / Liner', desc: "Inside cabinet coating. Smooth, hygienic, and stain-resistant, making internal surfaces simple to wipe clean." },
+        { id: 'matHardware', title: 'Hardware & Mechanisms', desc: "Hinges and drawer runners equipped with soft-closing mechanisms for smooth, quiet, and long-lasting operation." },
+        { id: 'matEdge', title: 'Edge Banding', desc: "Machine-applied edge sealing that protects board edges against moisture ingress, peeling, and sharp corners." },
+        { id: 'matHandles', title: 'Handles & Gola Profiles', desc: "Sleek, comfortable handles and concealed profiles designed for effortless daily opening and a seamless design." },
+        { id: 'matGlass', title: 'Glass & Aluminium Profiles', desc: "Toughened safety glass framed in elegant aluminium profiles to highlight display cabinets with extra strength." },
+        { id: 'matSkirting', title: 'Skirting & Plinth Base', desc: "Waterproof bottom trim that protects lower cabinets during floor cleaning and prevents dust build-up underneath." }
+    ];
+
+    function getMaterialEntries() {
+        return MATERIAL_DEFS
+            .map(m => ({ title: m.title, desc: m.desc, val: document.getElementById(m.id).value.trim() }))
+            .filter(m => m.val);
+    }
+
+    function updateMaterialAnnexure() {
+        const entries = getMaterialEntries();
+        const page = document.getElementById('material-details-page');
+        const content = document.getElementById('mat-details-content');
+        if (entries.length) {
+            content.innerHTML = entries.map(e => `
+                    <div class="mat-detail-box">
+                        <div class="mat-detail-title">${e.title}: <span style="color: var(--urban-gold);">${e.val}</span></div>
+                        <div class="mat-detail-desc">${e.desc}</div>
+                    </div>`).join('');
+            page.style.display = 'block';
+        } else {
+            page.style.display = 'none';
+            content.innerHTML = '';
+        }
+    }
+
+    function renderRoomStructure(name, type) {
+        const cont = document.getElementById('room-container');
+        const idx = roomCount++;
+        const div = document.createElement('div');
+        div.className = 'card room-card';
+        div.dataset.roomType = type;
+        div.innerHTML = `
+            <div class="section-header">
+                <span class="section-title">${name}</span>
+                <div class="controls no-print">
+                    <button class="btn-move" onclick="moveCategory(this.closest('.card'), 'up')" title="Move Section Up">▲</button>
+                    <button class="btn-move" onclick="moveCategory(this.closest('.card'), 'down')" title="Move Section Down">▼</button>
+                    <button class="btn-del" onclick="this.closest('.card').remove();calculate()" title="Delete Section"><i class="fas fa-trash-alt"></i></button>
+                </div>
+            </div>
+            <div id="sec-${idx}"></div>
+            <div class="room-footer">
+                <div style="font-size: 0.75rem; font-weight: 800;">${name} Total: <span id="room-sft-${idx}">0</span> | <span style="color:var(--accent-green)">₹ <span id="room-total-${idx}">0</span></span></div>
+                <button class="no-print" style="padding: 5px 10px; background: var(--urban-gold); color:white; border:none; border-radius:4px; font-size: 0.65rem; font-weight: 700; cursor:pointer;" onclick="addItem(${idx}, '${type}')">+ ITEM</button>
+            </div>`;
+        cont.appendChild(div);
+        addItem(idx, type);
+    }
+
+    function addNewCategory() {
+        const catName = prompt("Enter New Section / Room Name:");
+        if (catName && catName.trim() !== "") {
+            const catType = confirm("Click OK for Dimension/SFT based calculation, or CANCEL for Fixed Quantity/Hardware items.") ? "dims" : "fixed";
+            renderRoomStructure(catName.trim(), catType);
+            calculate();
+        }
+    }
+
+    function moveCategory(card, dir) {
+        if (dir === 'up' && card.previousElementSibling) card.parentNode.insertBefore(card, card.previousElementSibling);
+        else if (dir === 'down' && card.nextElementSibling) card.parentNode.insertBefore(card.nextElementSibling, card);
+        calculate();
+    }
+
+    function moveRow(row, dir) {
+        const parent = row.parentNode;
+        if (dir === 'up' && row.previousElementSibling) {
+            parent.insertBefore(row, row.previousElementSibling);
+        } else if (dir === 'down' && row.nextElementSibling) {
+            parent.insertBefore(row.nextElementSibling, row);
+        }
+        calculate();
+    }
+
+    function addItem(idx, type, data = null) {
+        const target = document.getElementById(`sec-${idx}`);
+        const id = 'r-' + Math.random().toString(36).substr(2, 5);
+        const html = (type === 'dims') ? 
+            `<div class="measurement-row row-dims" id="${id}">
+                <div><label>Description</label><input type="text" class="desc-val" value="${data?escHtml(data.desc):''}" placeholder="Item Description"></div>
+                <div><label>W</label><input type="number" class="w-val" oninput="calculate()" value="${data?data.w:''}" placeholder="0"></div>
+                <div><label>H</label><input type="number" class="h-val" oninput="calculate()" value="${data?data.h:''}" placeholder="0"></div>
+                <div><label>MRP/Sft</label><input type="number" class="mrp-val" oninput="calculate()" value="${data&&data.m!==undefined?data.m:''}" placeholder="0"></div>
+                <div><label>Offer/Sft</label><input type="number" class="r-val" oninput="calculate()" value="${data?data.r:''}" placeholder="0"></div>
+                <div style="font-weight:bold;color:var(--accent-green)">₹ <span class="row-total">0</span></div>
+                <div class="controls no-print">
+                    <button class="btn-move" onclick="moveRow(this.closest('.measurement-row'), 'up')" title="Move Up">▲</button>
+                    <button class="btn-move" onclick="moveRow(this.closest('.measurement-row'), 'down')" title="Move Down">▼</button>
+                    <button class="btn-del" onclick="document.getElementById('${id}').remove();calculate()" title="Delete Row">✕</button>
+                </div>
+            </div>` :
+            `<div class="measurement-row row-fixed" id="${id}">
+                <div><label>Item</label><input type="text" class="desc-val" value="${data?escHtml(data.desc):''}" placeholder="Hardware / Fitting Name"></div>
+                <div><label>Qty</label><input type="number" class="q-val" oninput="calculate()" value="${data?data.q:''}" placeholder="0"></div>
+                <div><label>MRP</label><input type="number" class="mrp-val" oninput="calculate()" value="${data&&data.m!==undefined?data.m:''}" placeholder="0"></div>
+                <div><label>Offer Price</label><input type="number" class="amt-val" oninput="calculate()" value="${data?data.p:''}" placeholder="0"></div>
+                <div style="font-weight:bold;color:var(--accent-green)">₹ <span class="row-total">0</span></div>
+                <div class="controls no-print">
+                    <button class="btn-move" onclick="moveRow(this.closest('.measurement-row'), 'up')" title="Move Up">▲</button>
+                    <button class="btn-move" onclick="moveRow(this.closest('.measurement-row'), 'down')" title="Move Down">▼</button>
+                    <button class="btn-del" onclick="document.getElementById('${id}').remove();calculate()" title="Delete Row">✕</button>
+                </div>
+            </div>`;
+        target.insertAdjacentHTML('beforeend', html);
+        calculate();
+    }
+
+    // Text copies of the input fields so long text wraps fully in print / PDF
+    function syncMirrors() {
+        document.querySelectorAll('#capture-area input[type=text], #customNotes').forEach(el => {
+            let m = el.nextElementSibling;
+            if (!m || !m.classList.contains('mirror')) {
+                m = document.createElement('div');
+                m.className = 'mirror' + (el.tagName === 'TEXTAREA' ? ' mirror-pre' : '');
+                el.after(m);
+            }
+            m.textContent = el.value;
+        });
+        const notes = document.getElementById('customNotes');
+        const notesCard = notes ? notes.closest('.card') : null;
+        if (notesCard) notesCard.classList.toggle('empty-room-print', !notes.value.trim());
+    }
+
+    document.addEventListener('input', function(e) {
+        const t = e.target;
+        if (t.matches && t.matches('#capture-area input[type=text], #customNotes')) {
+            const m = t.nextElementSibling;
+            if (m && m.classList.contains('mirror')) m.textContent = t.value;
+            if (t.id === 'customNotes') syncMirrors();
+        }
+    });
+
+    function calculate() {
+        syncMirrors();
+        let sftTotal = 0, hqtyTotal = 0, subTotalOffer = 0, subTotalMrp = 0;
+        const indexBody = document.getElementById('index-body');
+        indexBody.innerHTML = '';
+        
+        const unitSelect = document.getElementById('dimUnit');
+        const unit = unitSelect ? unitSelect.value : 'mm';
+        const sftDivisor = (unit === 'in') ? 144 : 92903.04;
+        
+        if (unitSelect) {
+            const unitText = unitSelect.options[unitSelect.selectedIndex].text;
+            document.getElementById('tc-unit-display').innerText = unitText.toUpperCase();
+        }
+
+        document.querySelectorAll('.room-card').forEach((card) => {
+            let cardOfferSum = 0, cardMrpSum = 0, cardMetric = 0;
+            let hasValidItem = false, firstShown = false;
+            const type = card.dataset.roomType;
+
+            card.querySelectorAll('.measurement-row').forEach(row => {
+                const desc = row.querySelector('.desc-val').value.trim();
+                let offerVal = 0, mrpVal = 0, rowHas = false;
+
+                if(type === 'dims') {
+                    const w = parseFloat(row.querySelector('.w-val').value)||0;
+                    const h = parseFloat(row.querySelector('.h-val').value)||0;
+                    const r = parseFloat(row.querySelector('.r-val').value)||0;
+                    const mInput = parseFloat(row.querySelector('.mrp-val').value);
+                    const mrp = isNaN(mInput) ? r : mInput;
+                    const sft = (w * h / sftDivisor); 
+                    mrpVal = sft * mrp;
+                    offerVal = sft * r; 
+                    cardMetric += sft; sftTotal += sft;
+
+                    if (desc !== '' || w > 0 || h > 0 || r > 0) { hasValidItem = true; rowHas = true; }
+                } else {
+                    const q = parseFloat(row.querySelector('.q-val').value)||0;
+                    const p = parseFloat(row.querySelector('.amt-val').value)||0;
+                    const mInput = parseFloat(row.querySelector('.mrp-val').value);
+                    const mrp = isNaN(mInput) ? p : mInput;
+                    mrpVal = q * mrp;
+                    offerVal = q * p; 
+                    cardMetric += q; hqtyTotal += q;
+
+                    if (desc !== '' || q > 0 || p > 0) { hasValidItem = true; rowHas = true; }
+                }
+                row.classList.toggle('empty-row-print', !rowHas);
+                row.classList.toggle('first-visible', rowHas && !firstShown);
+                if (rowHas) firstShown = true;
+                row.querySelector('.row-total').innerText = Math.round(offerVal).toLocaleString('en-IN');
+                cardMrpSum += mrpVal;
+                cardOfferSum += offerVal;
+            });
+            
+            // Automatically add class to exclude blank categories from print
+            if (!hasValidItem || cardMetric === 0) {
+                card.classList.add('empty-room-print');
+            } else {
+                card.classList.remove('empty-room-print');
+            }
+
+            card.querySelector('[id^="room-sft-"]').innerHTML = type === 'dims' ? `<span style="color: var(--urban-orange);">${cardMetric.toFixed(1)} Sft</span>` : `${Math.round(cardMetric)} Qty`;
+            card.querySelector('[id^="room-total-"]').innerText = Math.round(cardOfferSum).toLocaleString('en-IN');
+            subTotalMrp += cardMrpSum;
+            subTotalOffer += cardOfferSum;
+            
+            if(cardMetric > 0 && hasValidItem) {
+                const unitText = type === 'dims' ? ' Sft' : ' Qty';
+                const displayMetric = type === 'dims' ? cardMetric.toFixed(1) : Math.round(cardMetric);
+                const displayMrp = `₹ ${Math.round(cardMrpSum).toLocaleString('en-IN')}`;
+                const strikeHtml = cardMrpSum > cardOfferSum ? `style="text-align:right; color:#888; text-decoration:line-through;"` : `style="text-align:right; color:#888;"`;
+
+                indexBody.insertAdjacentHTML('beforeend', `<tr>
+                    <td>${card.querySelector('.section-title').innerText}</td>
+                    <td style="text-align:center">${displayMetric}${unitText}</td>
+                    <td ${strikeHtml}>${displayMrp}</td>
+                    <td style="text-align:right">₹ ${Math.round(cardOfferSum).toLocaleString('en-IN')}</td>
+                </tr>`);
+            }
+        });
+        
+        const gstRate = parseFloat(document.getElementById('gstRate').value)||0;
+        const gstAmt = Math.round(subTotalOffer * (gstRate/100));
+        const finalGrandTotal = Math.round(subTotalOffer + gstAmt);
+        const totalSavings = Math.round(subTotalMrp) - Math.round(subTotalOffer);   // Total Savings = Total MRP - Taxable Amount (backend only, not displayed)
+        
+        document.getElementById('idx-total-mrp').innerText = "₹ " + Math.round(subTotalMrp).toLocaleString('en-IN');
+        document.getElementById('idx-grand').innerText = "₹ " + finalGrandTotal.toLocaleString('en-IN');
+        document.getElementById('idx-savings').innerText = "₹ " + (totalSavings > 0 ? totalSavings.toLocaleString('en-IN') : "0");
+        
+        document.getElementById('tbl-sft').innerText = sftTotal.toFixed(1);
+        document.getElementById('tbl-qty').innerText = Math.round(hqtyTotal);
+
+        document.getElementById('footerGrand').innerText = "₹ " + finalGrandTotal.toLocaleString('en-IN');
+        document.getElementById('footerSft').innerHTML = `<span style="color: var(--urban-orange);">${sftTotal.toFixed(1)} Sft</span>`;
+        document.getElementById('footerQty').innerText = Math.round(hqtyTotal) + " Nos";
+    }
+
+    const escHtml = t => String(t == null ? '' : t).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+    // Newest first: uses savedAt, falls back to the quotation date for older records
+    function quoteTime(q) {
+        if (q.savedAt) return Number(q.savedAt) || 0;
+        if (q.date) { const t = Date.parse(q.date); return isNaN(t) ? 0 : t; }
+        return 0;
+    }
+
+    function fmtWhen(q) {
+        const ts = quoteTime(q);
+        if (!ts) return '';
+        const d = new Date(ts), now = new Date();
+        const startOf = x => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+        const days = Math.round((startOf(now) - startOf(d)) / 86400000);
+        const time = q.savedAt ? ', ' + d.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' }) : '';
+        if (days === 0) return 'Today' + time;
+        if (days === 1) return 'Yesterday' + time;
+        if (days > 1 && days < 7) return days + ' days ago';
+        return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+    }
+
+    function displayResults(data) {
+        const list = document.getElementById('searchResultsList');
+        const keys = Object.keys(data).filter(k => data[k] && typeof data[k] === 'object').sort((a, b) => {
+            const diff = quoteTime(data[b]) - quoteTime(data[a]);
+            if (diff) return diff;
+            return String(data[b].quoteNo || '').localeCompare(String(data[a].quoteNo || ''));
+        });
+
+        const total = Object.keys(allQuotes).length;
+        document.getElementById('smCount').textContent = keys.length === total ? total + ' saved' : keys.length + ' of ' + total;
+
+        if (!keys.length) {
+            list.innerHTML = '<div class="sm-empty"><i class="fas fa-folder-open" style="font-size:1.6rem; display:block; margin-bottom:8px; opacity:0.5;"></i>No quotations found</div>';
+            return;
+        }
+
+        list.innerHTML = keys.map(k => {
+            const q = data[k];
+            const name = (q.client || 'Unnamed').toString();
+            const initial = escHtml(name.trim().charAt(0).toUpperCase() || '?');
+            const idPart = q.quoteNo
+                ? `<span class="si-chip">${escHtml(q.quoteNo)}</span>`
+                : (q.phone ? `<span><i class="fas fa-phone-alt" style="font-size:0.55rem;"></i> ${escHtml(q.phone)}</span>` : '');
+            const when = fmtWhen(q);
+            const whenPart = when ? `<span><i class="far fa-clock" style="font-size:0.6rem;"></i> ${escHtml(when)}</span>` : '';
+            const sftPart = q.totalSft && parseFloat(q.totalSft) > 0 ? `<span>${escHtml(q.totalSft)} Sft</span>` : '';
+            const amt = q.grandTotal ? `<span class="si-amt">${escHtml(q.grandTotal)}</span>` : '';
+            return `<div class="search-item" data-key="${escHtml(k)}">
+                <div class="si-avatar">${initial}</div>
+                <div class="si-main">
+                    <div class="si-name">${escHtml(name)}</div>
+                    <div class="si-meta">${idPart}${whenPart}${sftPart}</div>
+                </div>
+                <div class="si-right">${amt}<button class="btn-del" title="Delete Saved Quote"><i class="fas fa-trash-alt" style="font-size:0.8rem;"></i></button></div>
+            </div>`;
+        }).join('');
+    }
+
+    document.getElementById('searchResultsList').addEventListener('click', e => {
+        const item = e.target.closest('.search-item');
+        if (!item) return;
+        const key = item.dataset.key;
+        if (e.target.closest('.btn-del')) deleteQuote(key); else loadRecord(key);
+    });
+    document.getElementById('searchModal').addEventListener('click', e => {
+        if (e.target.id === 'searchModal') closeSearch();
+    });
+
+    async function searchDatabase() {
+        document.getElementById('searchModal').style.display = 'flex';
+        document.getElementById('searchResultsList').innerHTML = '<div class="sm-empty">Loading...</div>';
+        try {
+            const snap = await database.ref('quotations').once('value');
+            allQuotes = snap.val() || {};
+            filterResults();
+        } catch (err) {
+            console.error('Search error:', err);
+            document.getElementById('searchResultsList').innerHTML = '<div class="sm-empty">Could not load saved quotations.<br>' + escHtml(err && err.message ? err.message : err) + '</div>';
+        }
+    }
+
+    // Search matches name, quote number and phone
+    function filterResults() {
+        const q = document.getElementById('dbSearchInput').value.toLowerCase().trim();
+        const filtered = {};
+        Object.keys(allQuotes).forEach(k => {
+            const item = allQuotes[k];
+            if (!item || typeof item !== 'object') return;
+            const hay = [item.client, item.quoteNo, item.phone].map(v => String(v || '').toLowerCase());
+            if (!q || hay.some(h => h.includes(q))) filtered[k] = item;
+        });
+        displayResults(filtered);
+    }
+
+    function loadRecord(key) {
+        const d = allQuotes[key];
+        currentQuoteNo = d.quoteNo || null;
+        currentQuoteKey = key;
+        if (d.date) document.getElementById('qDate').value = d.date;
+
+        document.getElementById('cName').value = d.client || ""; 
+        document.getElementById('cPhone').value = d.phone || "";
+        document.getElementById('cAddress').value = d.address || ""; 
+        document.getElementById('gstRate').value = d.gst || 18;
+        
+        document.getElementById('dimUnit').value = d.unit || 'in'; 
+        
+        document.getElementById('customNotes').value = d.notes || "";
+
+        if (d.materials) {
+            document.getElementById('matCore').value = d.materials.core || "";
+            document.getElementById('matOuter').value = d.materials.outer || "";
+            document.getElementById('matInner').value = d.materials.inner || "";
+            document.getElementById('matHardware').value = d.materials.hardware || "";
+            document.getElementById('matEdge').value = d.materials.edge || "";
+            document.getElementById('matHandles').value = d.materials.handles || "";
+            document.getElementById('matGlass').value = d.materials.glass || "";
+            document.getElementById('matSkirting').value = d.materials.skirting || "";
+        } else {
+            document.getElementById('matCore').value = "";
+            document.getElementById('matOuter').value = "";
+            document.getElementById('matInner').value = "";
+            document.getElementById('matHardware').value = "";
+            document.getElementById('matEdge').value = "";
+            document.getElementById('matHandles').value = "";
+            document.getElementById('matGlass').value = "";
+            document.getElementById('matSkirting').value = "";
+        }
+
+        document.getElementById('room-container').innerHTML = ''; roomCount = 0;
+        d.rooms.forEach(r => {
+            renderRoomStructure(r.name, r.type);
+            const curIdx = roomCount-1; document.getElementById(`sec-${curIdx}`).innerHTML = '';
+            r.items.forEach(it => addItem(curIdx, r.type, it));
+        });
+        calculate(); 
+        updateMaterialAnnexure();
+        refreshQuoteNoPreview();
+        closeSearch();
+    }
+
+    let isSaving = false;
+    const normText = t => String(t || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+    const normPhone = t => String(t || '').replace(/\D/g, '').slice(-10);
+
+    // Firebase keys cannot contain . # $ [ ] /
+    function makeDbKeyBase(name) {
+        const base = name.replace(/\s+/g, '_').replace(/[.#$\[\]\/]/g, '');
+        return base || 'Client';
+    }
+
+    function askUpdateOrReplace(name, quoteNo) {
+        return new Promise(resolve => {
+            const modal = document.getElementById('dupModal');
+            document.getElementById('dupMsg').textContent =
+                `A quotation for "${name}" with the same phone number and address is already saved` +
+                (quoteNo ? ` (Quote No: ${quoteNo}).` : '.');
+            modal.style.display = 'flex';
+            const done = choice => { modal.style.display = 'none'; resolve(choice); };
+            document.getElementById('dupUpdate').onclick = () => done('update');
+            document.getElementById('dupReplace').onclick = () => done('replace');
+            document.getElementById('dupCancel').onclick = () => done('cancel');
+        });
+    }
+
+    function buildQuoteData(name, quoteNo) {
+        const data = { 
+            client: name, 
+            quoteNo: quoteNo,
+            savedAt: Date.now(),
+            grandTotal: document.getElementById('idx-grand').innerText,
+            phone: document.getElementById('cPhone').value.trim(), 
+            address: document.getElementById('cAddress').value.trim(), 
+            date: document.getElementById('qDate').value, 
+            gst: document.getElementById('gstRate').value, 
+            unit: document.getElementById('dimUnit').value,
+            notes: document.getElementById('customNotes').value,
+            materials: {
+                core: document.getElementById('matCore').value,
+                outer: document.getElementById('matOuter').value,
+                inner: document.getElementById('matInner').value,
+                hardware: document.getElementById('matHardware').value,
+                edge: document.getElementById('matEdge').value,
+                handles: document.getElementById('matHandles').value,
+                glass: document.getElementById('matGlass').value,
+                skirting: document.getElementById('matSkirting').value
+            },
+            totalSft: document.getElementById('tbl-sft').innerText, 
+            rooms: [] 
+        };
+        document.querySelectorAll('.room-card').forEach(card => {
+            const room = { name: card.querySelector('.section-title').innerText, type: card.dataset.roomType, items: [] };
+            card.querySelectorAll('.measurement-row').forEach(row => {
+                const item = { desc: row.querySelector('.desc-val').value };
+                if (room.type === 'dims') { 
+                    item.w = row.querySelector('.w-val').value; 
+                    item.h = row.querySelector('.h-val').value; 
+                    item.m = row.querySelector('.mrp-val').value;
+                    item.r = row.querySelector('.r-val').value; 
+                } else { 
+                    item.q = row.querySelector('.q-val').value; 
+                    item.m = row.querySelector('.mrp-val').value;
+                    item.p = row.querySelector('.amt-val').value; 
+                }
+                room.items.push(item);
+            });
+            data.rooms.push(room);
+        });
+        return data;
+    }
+
+    async function saveToCloud() {
+        if (isSaving) return;
+        const name = document.getElementById('cName').value.trim(); 
+        if (!name) return alert("Client Name Required to save quotation");
+
+        const phone = document.getElementById('cPhone').value.trim();
+        const address = document.getElementById('cAddress').value.trim();
+        const saveBtn = document.querySelector('.bg-save');
+        const originalIcon = saveBtn.innerHTML;
+        isSaving = true;
+        saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+        try {
+            const snap = await database.ref('quotations').once('value');
+            const all = snap.val() || {};
+
+            // Same client = same name + same phone + same address
+            let matchKey = null;
+            Object.keys(all).forEach(k => {
+                if (matchKey) return;
+                const q = all[k];
+                if (q && typeof q === 'object' &&
+                    normText(q.client) === normText(name) &&
+                    normPhone(q.phone) === normPhone(phone) &&
+                    normText(q.address) === normText(address)) {
+                    matchKey = k;
+                }
+            });
+
+            let dbKey, quoteNo, mode;
+            if (matchKey) {
+                const existing = all[matchKey];
+                const choice = await askUpdateOrReplace(name, existing.quoteNo);
+                if (choice === 'cancel') return;
+                dbKey = matchKey;
+                mode = choice;
+                // Update keeps the quote number, Replace issues a new one
+                quoteNo = (choice === 'update' && existing.quoteNo) ? existing.quoteNo : await allocateQuoteNo();
+            } else {
+                // New client (or same name with different phone/address): never overwrite another record
+                const base = makeDbKeyBase(name);
+                dbKey = base;
+                let n = 2;
+                while (Object.prototype.hasOwnProperty.call(all, dbKey)) dbKey = base + '_' + (n++);
+                mode = 'new';
+                quoteNo = await allocateQuoteNo();
+            }
+
+            await database.ref('quotations/' + dbKey).set(buildQuoteData(name, quoteNo));
+            currentQuoteNo = quoteNo; currentQuoteKey = dbKey;
+            document.getElementById('quoteNo').innerText = quoteNo;
+
+            const verb = mode === 'update' ? 'Quotation updated!' : (mode === 'replace' ? 'Quotation replaced!' : 'Saved Successfully!');
+            alert(verb + "\nQuote No: " + quoteNo);
+        } catch (err) {
+            console.error('Save error:', err);
+            alert("Could not save the quotation: " + (err && err.message ? err.message : err));
+        } finally {
+            isSaving = false;
+            saveBtn.innerHTML = originalIcon;
+        }
+    }
+
+    async function deleteQuote(key) {
+        const pin = prompt("Enter admin PIN to delete this record:");
+        if (pin !== "1996") {
+            alert("Incorrect PIN. Deletion cancelled.");
+            return;
+        }
+
+        if (confirm(`Are you sure you want to permanently delete the quotation for ${key.replace(/_/g, ' ')}?`)) {
+            await database.ref('quotations/' + key).remove();
+            delete allQuotes[key];
+            if (currentQuoteKey === key) { currentQuoteNo = null; currentQuoteKey = null; refreshQuoteNoPreview(); }
+            filterResults();
+        }
+    }
+
+    function closeSearch() { document.getElementById('searchModal').style.display = 'none'; document.getElementById('dbSearchInput').value = ''; }
+    
+    // ================= PDF EXPORT (same layout as the print view, no browser print dialog) =================
+    let isExporting = false;
+
+    async function exportToPDF() {
+        if (isExporting) return;
+        if (!(window.jspdf && window.jspdf.jsPDF) || typeof html2canvas !== 'function') {
+            return alert("PDF libraries did not load. Check your internet connection and reload the page.");
+        }
+        calculate();
+        if (!document.querySelectorAll('#room-container > .room-card:not(.empty-room-print)').length) {
+            return alert("Add at least one item with dimensions / quantity before exporting.");
+        }
+        if (!currentQuoteNo && !confirm("This quotation is not saved yet, so the quote number shown is only a preview.\nPress OK to export anyway, or Cancel to save first.")) return;
+
+        const btn = document.querySelector('.bg-pdf');
+        const originalIcon = btn.innerHTML;
+        isExporting = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+        const prevScroll = window.scrollY;
+        window.scrollTo(0, 0);
+        const textareas = Array.from(document.querySelectorAll('textarea'));
+        const prevHeights = textareas.map(t => t.style.height);
+        textareas.forEach(t => { t.style.height = 'auto'; t.style.height = t.scrollHeight + 'px'; });
+
+        try {
+            // Blocks in the same order as the printed page; each card is kept whole on a page
+            const blocks = [];
+            const hdr = document.querySelector('#capture-area > .brand-header');
+            if (hdr) blocks.push({ el: hdr });
+            document.querySelectorAll('#summary-section > *').forEach(el => blocks.push({ el }));
+            document.querySelectorAll('#room-container > .room-card:not(.empty-room-print)').forEach(el => blocks.push({ el }));
+            const endCard = document.querySelector('#room-container + .card');
+            if (endCard) blocks.push({ el: endCard });
+            const annex = document.getElementById('material-details-page');
+            if (annex && annex.style.display !== 'none') blocks.push({ el: annex, newPage: true });
+
+            const doc = new window.jspdf.jsPDF({ unit: 'mm', format: 'a4', compress: true });
+            const W = 210, H = 297, M = 8, CW = W - 2 * M, GAP = 2.5;
+            let y = M;
+
+            const placeBlock = (canvas, newPage) => {
+                if (!canvas || !canvas.width || !canvas.height) return;
+                const mmPerPx = CW / canvas.width;
+                const hmm = canvas.height * mmPerPx;
+                if (newPage && y > M) { doc.addPage(); y = M; }
+                if (y > M && y + hmm > H - M && hmm <= H - 2 * M) { doc.addPage(); y = M; }
+                if (y + hmm <= H - M) {
+                    doc.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', M, y, CW, hmm, undefined, 'FAST');
+                    y += hmm + GAP;
+                    return;
+                }
+                // Block taller than one page: slice it across pages
+                let srcY = 0;
+                if (H - M - y < 30) { doc.addPage(); y = M; }
+                while (srcY < canvas.height) {
+                    const availPx = Math.floor((H - M - y) / mmPerPx);
+                    const slicePx = Math.min(availPx, canvas.height - srcY);
+                    if (slicePx < 1) { doc.addPage(); y = M; continue; }
+                    const part = document.createElement('canvas');
+                    part.width = canvas.width; part.height = slicePx;
+                    const ctx = part.getContext('2d');
+                    ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, part.width, part.height);
+                    ctx.drawImage(canvas, 0, srcY, canvas.width, slicePx, 0, 0, canvas.width, slicePx);
+                    doc.addImage(part.toDataURL('image/jpeg', 0.95), 'JPEG', M, y, CW, slicePx * mmPerPx, undefined, 'FAST');
+                    srcY += slicePx;
+                    y += slicePx * mmPerPx + GAP;
+                    if (srcY < canvas.height) { doc.addPage(); y = M; }
+                }
+            };
+
+            for (const b of blocks) {
+                const canvas = await html2canvas(b.el, {
+                    scale: 2,
+                    useCORS: true,
+                    logging: false,
+                    backgroundColor: '#ffffff',
+                    windowWidth: 900,
+                    ignoreElements: el => el.classList && el.classList.contains('no-print'),
+                    onclone: clonedDoc => {
+                        clonedDoc.body.classList.add('pdf-mode');
+                        clonedDoc.querySelectorAll('input, textarea').forEach(i => { if (!i.value) i.placeholder = ''; });
+                    }
+                });
+                placeBlock(canvas, b.newPage);
+            }
+
+            // Page numbers
+            const quoteNo = document.getElementById('quoteNo').innerText;
+            const pages = doc.getNumberOfPages();
+            for (let i = 1; i <= pages; i++) {
+                doc.setPage(i);
+                doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.setTextColor(150, 150, 150);
+                doc.text('URBAN CASA  |  ' + quoteNo, M, H - 3.5);
+                doc.text('Page ' + i + ' of ' + pages, W - M, H - 3.5, { align: 'right' });
+            }
+
+            const clientName = document.getElementById('cName').value.trim();
+            const safeName = (clientName || 'Quotation').replace(/[^\w\-]+/g, '_');
+            doc.save(safeName + '_' + quoteNo + '.pdf');
+        } catch (err) {
+            console.error('PDF export error:', err);
+            alert("Could not generate the PDF: " + (err && err.message ? err.message : err));
+        } finally {
+            textareas.forEach((t, i) => { t.style.height = prevHeights[i]; });
+            window.scrollTo(0, prevScroll);
+            btn.innerHTML = originalIcon;
+            isExporting = false;
+        }
+    }
+
+    function handlePrint() { calculate(); window.print(); }
+
+    function exportToExcel() {
+        const clientName = document.getElementById('cName').value.trim() || 'Quotation';
+        const date = document.getElementById('qDate').value;
+        const unit = document.getElementById('dimUnit') ? document.getElementById('dimUnit').value : 'mm';
+        const sftDivisor = (unit === 'in') ? 144 : 92903.04;
+        
+        let data = [
+            ["URBAN CASA - EXECUTIVE QUOTATION"],
+            ["Quote No", document.getElementById('quoteNo').innerText],
+            ["Client Name", clientName, "", "Date", date],
+            ["Phone", document.getElementById('cPhone').value, "", "Unit", unit.toUpperCase()],
+            ["Address", document.getElementById('cAddress').value, "", "", ""],
+            [],
+            ["--- MATERIAL & HARDWARE SPECIFICATIONS ---"],
+            ["Core Material", document.getElementById('matCore').value],
+            ["Outer Finish", document.getElementById('matOuter').value],
+            ["Inner Finish", document.getElementById('matInner').value],
+            ["Hardware", document.getElementById('matHardware').value],
+            ["Edge Banding", document.getElementById('matEdge').value],
+            ["Handles & Profiles", document.getElementById('matHandles').value],
+            ["Glass Profiles", document.getElementById('matGlass').value],
+            ["Skirting", document.getElementById('matSkirting').value],
+            [],
+            ["Section Description", "SFT/Qty", "MRP Rate/Price", "Offer Rate/Price", "Total Amount"]
+        ];
+
+        document.querySelectorAll('.room-card').forEach(card => {
+            if (card.classList.contains('empty-room-print')) return;
+
+            const roomName = card.querySelector('.section-title').innerText;
+            const type = card.dataset.roomType;
+            data.push([`--- ${roomName.toUpperCase()} ---`]);
+
+            card.querySelectorAll('.measurement-row').forEach(row => {
+                const desc = row.querySelector('.desc-val').value;
+                if (!desc) return;
+                if (type === 'dims') {
+                    const w = row.querySelector('.w-val').value;
+                    const h = row.querySelector('.h-val').value;
+                    const mrp = row.querySelector('.mrp-val').value;
+                    const offer = row.querySelector('.r-val').value;
+                    const total = row.querySelector('.row-total').innerText;
+                    data.push([desc, `${w} x ${h} ${unit} (${((w*h)/sftDivisor).toFixed(1)} sft)`, mrp, offer, total]);
+                } else {
+                    const q = row.querySelector('.q-val').value;
+                    const mrp = row.querySelector('.mrp-val').value;
+                    const offer = row.querySelector('.amt-val').value;
+                    const total = row.querySelector('.row-total').innerText;
+                    data.push([desc, `${q} Qty`, mrp, offer, total]);
+                }
+            });
+        });
+
+        data.push([]);
+        data.push(["TOTAL PRE-DISCOUNT MRP", "", "", "", document.getElementById('idx-total-mrp').innerText]);
+        data.push(["TOTAL AMOUNT (INCL. TAXES)", "", "", "", document.getElementById('idx-grand').innerText]);
+
+        const ws = XLSX.utils.aoa_to_sheet(data);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Quotation");
+        XLSX.writeFile(wb, `${clientName}_UrbanCasa_Quote.xlsx`);
+    }
+
+    async function shareToWhatsApp() {
+        const btn = document.querySelector('.bg-wa');
+        const originalIcon = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>'; 
+
+        try {
+            const textareas = document.querySelectorAll('textarea');
+            textareas.forEach(ta => {
+                ta.style.height = 'auto';
+                ta.style.height = ta.scrollHeight + 'px';
+            });
+
+            const captureElement = document.getElementById('capture-area');
+
+            const canvas = await html2canvas(captureElement, {
+                scale: 2,
+                useCORS: true,
+                backgroundColor: '#ffffff',
+                windowWidth: captureElement.scrollWidth,
+                windowHeight: captureElement.scrollHeight,
+                ignoreElements: function(element) {
+                    return element.classList && (element.classList.contains('no-print') || element.classList.contains('empty-room-print'));
+                }
+            });
+
+            textareas.forEach(ta => { ta.style.height = '100px'; });
+
+            canvas.toBlob(async (blob) => {
+                const clientName = document.getElementById('cName').value.trim() || 'Client';
+                const fileName = `UrbanCasa_Quote_${clientName}.png`;
+                const file = new File([blob], fileName, { type: "image/png" });
+
+                if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                    try {
+                        await navigator.share({
+                            title: 'Urban Casa Quotation',
+                            text: 'Hello, please find your modular quotation attached.',
+                            files: [file]
+                        });
+                    } catch (err) {
+                        console.log("Share cancelled or failed", err);
+                    }
+                } else {
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.style.display = 'none';
+                    a.href = url;
+                    a.download = fileName;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    
+                    alert("Quotation Image Downloaded!\nOpening WhatsApp so you can drag and attach it to your message.");
+                    
+                    const phone = document.getElementById('cPhone').value.trim();
+                    const message = encodeURIComponent("Hello! Please find the attached quotation image.");
+                    const waUrl = (phone && phone.length >= 10) ? `https://wa.me/91${phone}?text=${message}` : `https://wa.me/?text=${message}`;
+                    window.open(waUrl, '_blank');
+                }
+                
+                btn.innerHTML = originalIcon;
+            }, 'image/png');
+            
+        } catch (error) {
+            console.error("Image Capture Error: ", error);
+            alert("Failed to generate the image. Please try saving it via Print instead.");
+            btn.innerHTML = originalIcon;
+        }
+    }
+</script>
+</body>
+</html>
